@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Backrooms - Level 0</title>
+    <style>
+        /* ==========================================================================
+           CORE STYLING - OPTIMIZED FOR MOBILE VIEWPORTS
+           ========================================================================== */
+        body { 
+            margin: 0; overflow: hidden; background: #000; 
+            touch-action: none; font-family: 'Courier New', monospace; 
+            user-select: none; -webkit-user-select: none;
+        }
+        canvas { display: block; }
+        
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #111; color: #ffffaa; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000; text-align: center;
+        }
+        .btn-start {
+            background: #ffffaa; color: #000; border: none; padding: 15px 30px;
+            font-size: 1.2rem; font-family: inherit; font-weight: bold;
+            margin: 10px; cursor: pointer; border-radius: 5px; box-shadow: 0 4px #888855;
+        }
+        .btn-start:active { background: #cccc77; transform: translateY(2px); box-shadow: 0 2px #888855; }
+        #credit { position: absolute; bottom: 20px; font-size: 0.9rem; opacity: 0.6; }
+        
+        #hud { position: absolute; top: 20px; left: 20px; color: #ffffaa; z-index: 10; pointer-events: none; text-shadow: 2px 2px 0px #000; line-height: 1.6; }
+        .bar-bg { width: 150px; height: 12px; background: rgba(0,0,0,0.6); border: 2px solid #ffffaa; margin-top: 4px; }
+        #sanity-fill { height: 100%; width: 100%; background: #00ff00; transition: width 0.2s; }
+        
+        #controls { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
+        
+        #joy-base {
+            position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px;
+            background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,170,0.4);
+            border-radius: 50%; pointer-events: auto; display: none; /* Only shows on touch */
+        }
+        #joy-knob {
+            position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
+            background: rgba(255,255,170,0.6); border-radius: 50%; transform: translate(-50%, -50%);
+        }
+
+        #btn-drink {
+            position: absolute; bottom: 60px; right: 40px; width: 80px; height: 80px;
+            background: rgba(0, 150, 255, 0.3); border: 2px solid #55aaff; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; color: #fff;
+            font-weight: bold; pointer-events: auto; cursor: pointer; text-shadow: 1px 1px 2px #000;
+            backdrop-filter: blur(4px);
+        }
+        #btn-drink:active { background: rgba(0, 150, 255, 0.6); transform: scale(0.9); }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="overlay">
+        <h1 style="letter-spacing: 5px; font-size: 3rem;">THE BACKROOMS</h1>
+        <p>PROCEDURAL GENERATION ENGINE v4.0</p>
+        <div>
+            <button class="btn-start" onclick="App.start('LOW')">START (LOW GFX)</button>
+            <button class="btn-start" onclick="App.start('HIGH')">START (ULTRA GFX)</button>
+        </div>
+        <div id="credit">Engineered by Kantasu</div>
+    </div>
+
+    <div id="hud">
+        LEVEL: <span id="ui-lvl" style="color:#fff;">0</span> | BIOME: <span id="ui-biome">YELLOW</span><br>
+        SANITY: <div class="bar-bg"><div id="sanity-fill"></div></div>
+        ALMOND WATER: <span id="ui-water">0</span>
+    </div>
+
+    <div id="controls">
+        <div id="joy-base"><div id="joy-knob"></div></div>
+        <div id="btn-drink">DRINK</div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * BACKROOMS CORE ENGINE - FULL SPECIFICATION
+         * ============================================================================
+         * Features: 
+         * - Multi-pointer tracking for mobile movement/look independence.
+         * - Procedural maze generation with random wall lengths and axis switching.
+         * - Frustum culling and dynamic lighting optimization.
+         * ============================================================================
+         */
+
+        const CONFIG = {
+            CHUNK_SIZE: 16,
+            RENDER_DIST: 2,
+            PLAYER_HEIGHT: 1.7,
+            WALK_SPEED: 95, // Base speed
+            RUN_SPEED: 145, // Not used yet, reserved for sprint
+            SANITY_DRAIN: 0.8,
+            PICKUP_RADIUS: 1.8,
+            WALL_THICKNESS: 0.6,
+            WALL_HEIGHT: 4.0
+        };
+
+        /**
+         * Utility Class: Internal Engine Math
+         */
+        class EngineMath {
+            static clamp(v, min, max) { return Math.min(Math.max(v, min), max); }
+            static lerp(a, b, t) { return a + (b - a) * t; }
+            static getHash(x, z) {
+                const seed = x * 15485863 + z * 32452843;
+                return (Math.abs(Math.sin(seed) * 43758.5453) % 1);
+            }
+        }
+
+        /**
+         * TextureFactory: Procedural Asset Generation
+         */
+        class TextureFactory {
+            /**
+             * Generates canvas-based textures for the world
+             * @param {string} type - 'carpet', 'wallpaper', 'ceiling'
+             * @returns {THREE.CanvasTexture}
+             */
+            static generate(type) {
+                const cvs = document.createElement('canvas');
+                cvs.width = 256; cvs.height = 256;
+                const ctx = cvs.getContext('2d');
+                
+                switch(type) {
+                    case 'carpet':
+                        ctx.fillStyle = '#857a3d'; ctx.fillRect(0, 0, 256, 256);
+                        for (let i = 0; i < 8000; i++) {
+                            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.05)';
+                            ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+                        }
+                        break;
+                    case 'wallpaper':
+                        ctx.fillStyle = '#c4b76e'; ctx.fillRect(0, 0, 256, 256);
+                        ctx.strokeStyle = '#a39750'; ctx.lineWidth = 3;
+                        for (let i = 0; i < 256; i += 32) {
+                            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.stroke();
+                        }
+                        break;
+                    case 'ceiling':
+                        ctx.fillStyle = '#cccccc'; ctx.fillRect(0, 0, 256, 256);
+                        ctx.strokeStyle = '#999999'; ctx.lineWidth = 6;
+                        ctx.strokeRect(0, 0, 256, 256);
+                        ctx.fillStyle = '#ffffff'; ctx.fillRect(64, 64, 128, 128); // Light panel mimic
+                        break;
+                }
+
+                const tex = new THREE.CanvasTexture(cvs);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(CONFIG.CHUNK_SIZE / 4, CONFIG.CHUNK_SIZE / 4);
+                return tex;
+            }
+        }
+
+        /**
+         * InputManager: Unified Mobile/Desktop Controller
+         * Uses PointerEvents to solve the "Independent Look/Move" problem on mobile.
+         */
+        class InputManager {
+            constructor() {
+                this.move = { fwd: 0, str: 0 };
+                this.look = { x: 0, y: 0 };
+                
+                // Multi-touch tracking
+                this.pointers = {
+                    moveId: null,
+                    lookId: null,
+                    moveStart: { x: 0, y: 0 },
+                    lookLast: { x: 0, y: 0 }
+                };
+
+                this.joyBase = document.getElementById('joy-base');
+                this.joyKnob = document.getElementById('joy-knob');
+                
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                window.addEventListener('pointerdown', (e) => {
+                    if (e.target.id === 'btn-drink') return;
+
+                    // Left side of screen = Movement
+                    if (e.clientX < window.innerWidth / 2 && this.pointers.moveId === null) {
+                        this.pointers.moveId = e.pointerId;
+                        this.pointers.moveStart = { x: e.clientX, y: e.clientY };
+                        this.joyBase.style.display = 'block';
+                        this.joyBase.style.left = `${e.clientX - 60}px`;
+                        this.joyBase.style.top = `${e.clientY - 60}px`;
+                    } 
+                    // Right side of screen = Looking
+                    else if (e.clientX >= window.innerWidth / 2 && this.pointers.lookId === null) {
+                        this.pointers.lookId = e.pointerId;
+                        this.pointers.lookLast = { x: e.clientX, y: e.clientY };
+                    }
+                });
+
+                window.addEventListener('pointermove', (e) => {
+                    // Update Movement
+                    if (e.pointerId === this.pointers.moveId) {
+                        const dx = e.clientX - this.pointers.moveStart.x;
+                        const dy = e.clientY - this.pointers.moveStart.y;
+                        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 60);
+                        const angle = Math.atan2(dy, dx);
+                        
+                        const fx = Math.cos(angle) * dist;
+                        const fy = Math.sin(angle) * dist;
+                        
+                        this.joyKnob.style.transform = `translate(calc(-50% + ${fx}px), calc(-50% + ${fy}px))`;
+                        this.move.str = fx / 60;
+                        this.move.fwd = -fy / 60;
+                    } 
+                    // Update Looking
+                    else if (e.pointerId === this.pointers.lookId) {
+                        this.look.x += e.clientX - this.pointers.lookLast.x;
+                        this.look.y += e.clientY - this.pointers.lookLast.y;
+                        this.pointers.lookLast = { x: e.clientX, y: e.clientY };
+                    }
+                });
+
+                const end = (e) => {
+                    if (e.pointerId === this.pointers.moveId) {
+                        this.pointers.moveId = null;
+                        this.move = { fwd: 0, str: 0 };
+                        this.joyBase.style.display = 'none';
+                    }
+                    if (e.pointerId === this.pointers.lookId) {
+                        this.pointers.lookId = null;
+                    }
+                };
+
+                window.addEventListener('pointerup', end);
+                window.addEventListener('pointercancel', end);
+            }
+
+            consumeLook() {
+                const l = { x: this.look.x, y: this.look.y };
+                this.look = { x: 0, y: 0 };
+                return l;
+            }
+        }
+
+        /**
+         * Player: Logic for movement, inventory, and sanity
+         */
+        class Player {
+            constructor(scene, camera) {
+                this.yaw = new THREE.Object3D(); 
+                this.pitch = new THREE.Object3D();
+                this.camera = camera;
+                
+                this.pitch.add(this.camera); 
+                this.yaw.add(this.pitch);
+                this.yaw.position.set(0, CONFIG.PLAYER_HEIGHT, 0);
+                scene.add(this.yaw);
+                
+                this.velocity = new THREE.Vector3();
+                this.sanity = 100; 
+                this.water = 0;
+
+                // Bind HUD events
+                document.getElementById('btn-drink').addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    this.drinkAlmondWater();
+                });
+            }
+
+            drinkAlmondWater() {
+                if (this.water > 0 && this.sanity < 100) {
+                    this.water--;
+                    this.sanity = Math.min(100, this.sanity + 30);
+                    this.updateUI();
+                }
+            }
+
+            update(dt, input, walls, items) {
+                // 1. Independent Look
+                const l = input.consumeLook();
+                this.yaw.rotation.y -= l.x * 0.004;
+                this.pitch.rotation.x = EngineMath.clamp(this.pitch.rotation.x - l.y * 0.004, -1.5, 1.5);
+
+                // 2. Physics & Friction
+                this.velocity.x -= this.velocity.x * 10 * dt; 
+                this.velocity.z -= this.velocity.z * 10 * dt;
+
+                const forward = new THREE.Vector3(0,0,-1).applyQuaternion(this.yaw.quaternion);
+                const right = new THREE.Vector3(1,0,0).applyQuaternion(this.yaw.quaternion);
+                
+                const currentSpeed = this.sanity < 20 ? CONFIG.WALK_SPEED * 0.5 : CONFIG.WALK_SPEED; 
+                this.velocity.add(forward.multiplyScalar(input.move.fwd * currentSpeed * dt));
+                this.velocity.add(right.multiplyScalar(input.move.str * currentSpeed * dt));
+
+                // 3. Collision Handling (Sliding)
+                let nextX = this.yaw.position.x + this.velocity.x * dt;
+                let nextZ = this.yaw.position.z + this.velocity.z * dt;
+                let collisionX = false, collisionZ = false;
+                
+                for(let w of walls) {
+                    if (!w.parent.visible) continue;
+                    // Bounding Box Expansion for player thickness
+                    const box = new THREE.Box3().setFromObject(w).expandByScalar(0.35); 
+                    if(box.containsPoint(new THREE.Vector3(nextX, CONFIG.PLAYER_HEIGHT, this.yaw.position.z))) collisionX = true;
+                    if(box.containsPoint(new THREE.Vector3(this.yaw.position.x, CONFIG.PLAYER_HEIGHT, nextZ))) collisionZ = true;
+                }
+                
+                if(!collisionX) this.yaw.position.x = nextX;
+                if(!collisionZ) this.yaw.position.z = nextZ;
+                
+                // Safety Floor Lock
+                this.yaw.position.y = CONFIG.PLAYER_HEIGHT; 
+
+                // 4. Pickup Logic
+                for (let i = items.length - 1; i >= 0; i--) {
+                    let item = items[i];
+                    if (!item.parent.visible) continue;
+                    let iPos = new THREE.Vector3(); item.getWorldPosition(iPos);
+                    let dist = Math.hypot(this.yaw.position.x - iPos.x, this.yaw.position.z - iPos.z);
+                    
+                    if (dist < CONFIG.PICKUP_RADIUS) { 
+                        item.visible = false; 
+                        item.position.y = -500; 
+                        items.splice(i, 1);
+                        this.water++;
+                        this.updateUI();
+                    }
+                }
+            }
+
+            updateUI() {
+                document.getElementById('sanity-fill').style.width = this.sanity + "%";
+                document.getElementById('sanity-fill').style.background = this.sanity < 25 ? "red" : "#00ff00";
+                document.getElementById('ui-water').innerText = this.water;
+            }
+        }
+
+        /**
+         * App: Master Controller
+         */
+        class App {
+            static start(gfx) {
+                document.getElementById('overlay').style.display = 'none';
+                
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0a0a00);
+                this.scene.fog = new THREE.Fog(0x0a0a00, 1, CONFIG.CHUNK_SIZE * 1.8);
+
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 60);
+                
+                this.renderer = new THREE.WebGLRenderer({ antialias: gfx === 'HIGH', precision: "lowp" });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(gfx === 'LOW' ? 0.6 : (window.devicePixelRatio || 1));
+                document.body.appendChild(this.renderer.domElement);
+
+                this.scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+
+                this.input = new InputManager();
+                this.player = new Player(this.scene, this.camera);
+                this.clock = new THREE.Clock();
+
+                this.chunks = new Map();
+                this.activeWalls = [];
+                this.activeItems = [];
+                
+                this.mats = {
+                    floor: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('carpet') }),
+                    ceil: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('ceiling') }),
+                    wallY: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('wallpaper') }),
+                    wallB: new THREE.MeshLambertMaterial({ color: 0x002244 }),
+                    wallR: new THREE.MeshLambertMaterial({ color: 0x330000 })
+                };
+                
+                this.geo = {
+                    plane: new THREE.PlaneGeometry(CONFIG.CHUNK_SIZE, CONFIG.CHUNK_SIZE),
+                    water: new THREE.CylinderGeometry(0.15, 0.15, 0.5, 6)
+                };
+
+                this.frustum = new THREE.Frustum();
+                this.projMatrix = new THREE.Matrix4();
+
+                this.animate = this.animate.bind(this);
+                requestAnimationFrame(this.animate);
+            }
+
+            static getBiome(cx, cz) {
+                const n = Math.sin(cx * 0.2) * Math.cos(cz * 0.2);
+                if (n < -0.7) return { name: "BLUE", t: 'B', fog: 0x001122, drain: -0.4 };
+                if (n > 0.6) return { name: "RED", t: 'R', fog: 0x110000, drain: -4.0 };
+                return { name: "YELLOW", t: 'Y', fog: 0x0a0a00, drain: -0.6 };
+            }
+
+            static buildChunk(cx, cz) {
+                const key = `${cx},${cz}`;
+                if (this.chunks.has(key)) return;
+
+                const b = this.getBiome(cx, cz);
+                const seed = EngineMath.getHash(cx, cz);
+                const group = new THREE.Group();
+
+                // Floor/Ceiling
+                const f = new THREE.Mesh(this.geo.plane, b.t === 'Y' ? this.mats.floor : new THREE.MeshLambertMaterial({color: b.fog}));
+                f.rotation.x = -Math.PI/2; group.add(f);
+                
+                const c = new THREE.Mesh(this.geo.plane, this.mats.ceil);
+                c.position.y = CONFIG.WALL_HEIGHT; c.rotation.x = Math.PI/2; group.add(c);
+
+                // Local Light Source
+                const light = new THREE.PointLight(0xffffee, 0.5, CONFIG.CHUNK_SIZE * 1.4);
+                light.position.set(0, 3.8, 0);
+                group.add(light);
+
+                let wMat = b.t === 'R' ? this.mats.wallR : (b.t === 'B' ? this.mats.wallB : this.mats.wallY);
+
+                // ==========================================
+                // VERTICAL & HORIZONTAL WALL GENERATION
+                // ==========================================
+                
+                // Logic: We define two possible "wall slots" per chunk.
+                // slot 1 is Vertical (Z-Axis), slot 2 is Horizontal (X-Axis)
+                
+                // Variable Lengths: 40% to 90% of chunk size
+                const vLen = (0.4 + (seed * 0.5)) * CONFIG.CHUNK_SIZE;
+                const hLen = (0.4 + (EngineMath.getHash(cz, cx) * 0.5)) * CONFIG.CHUNK_SIZE;
+
+                const vGeo = new THREE.BoxGeometry(CONFIG.WALL_THICKNESS, CONFIG.WALL_HEIGHT, vLen);
+                const hGeo = new THREE.BoxGeometry(hLen, CONFIG.WALL_HEIGHT, CONFIG.WALL_THICKNESS);
+
+                // Add Vertical Wall
+                if (seed > 0.4) {
+                    const wV = new THREE.Mesh(vGeo, wMat);
+                    wV.position.set(-CONFIG.CHUNK_SIZE/2, CONFIG.WALL_HEIGHT/2, 0);
+                    group.add(wV); this.activeWalls.push(wV);
+                }
+
+                // Add Horizontal Wall
+                if (seed < 0.6) {
+                    const wH = new THREE.Mesh(hGeo, wMat);
+                    wH.position.set(0, CONFIG.WALL_HEIGHT/2, -CONFIG.CHUNK_SIZE/2);
+                    group.add(wH); this.activeWalls.push(wH);
+                }
+
+                // Almond Water Spawn
+                if (seed > 0.95) {
+                    const water = new THREE.Mesh(this.geo.water, new THREE.MeshBasicMaterial({color:0x88ccff}));
+                    water.position.set((seed-0.5)*10, 0.25, (seed-0.5)*10);
+                    group.add(water); this.activeItems.push(water);
+                }
+
+                group.position.set(cx * CONFIG.CHUNK_SIZE, 0, cz * CONFIG.CHUNK_SIZE);
+                this.scene.add(group);
+                this.chunks.set(key, { g: group, cx, cz, b, light: light });
+            }
+
+            static animate() {
+                requestAnimationFrame(this.animate);
+                const dt = Math.min(this.clock.getDelta(), 0.1);
+
+                this.player.update(dt, this.input, this.activeWalls, this.activeItems);
+
+                const pcx = Math.round(this.player.yaw.position.x / CONFIG.CHUNK_SIZE);
+                const pcz = Math.round(this.player.yaw.position.z / CONFIG.CHUNK_SIZE);
+                const curBiome = this.getBiome(pcx, pcz);
+
+                // HUD Sync
+                document.getElementById('ui-biome').innerText = curBiome.name;
+                document.getElementById('ui-biome').style.color = curBiome.t === 'B' ? '#55aaff' : (curBiome.t === 'R' ? '#ff5555' : '#ffffaa');
+                this.scene.fog.color.set(curBiome.fog);
+                
+                this.player.sanity = EngineMath.clamp(this.player.sanity + curBiome.drain * dt, 0, 100);
+                this.player.updateUI();
+
+                // Chunk Management
+                for(let x=-CONFIG.RENDER_DIST; x<=CONFIG.RENDER_DIST; x++) {
+                    for(let z=-CONFIG.RENDER_DIST; z<=CONFIG.RENDER_DIST; z++) {
+                        this.buildChunk(pcx+x, pcz+z);
+                    }
+                }
+
+                // Frustum Culling for performance
+                this.camera.updateMatrixWorld();
+                this.projMatrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+                this.frustum.setFromProjectionMatrix(this.projMatrix);
+
+                this.chunks.forEach((chunk, key) => {
+                    const distX = Math.abs(chunk.cx - pcx);
+                    const distZ = Math.abs(chunk.cz - pcz);
+                    const maxDist = Math.max(distX, distZ);
+                    
+                    if (maxDist > CONFIG.RENDER_DIST) {
+                        this.scene.remove(chunk.g);
+                        this.chunks.delete(key);
+                        this.activeWalls = this.activeWalls.filter(w => w.parent !== chunk.g);
+                        this.activeItems = this.activeItems.filter(i => i.parent !== chunk.g);
+                    } else {
+                        const sphere = new THREE.Sphere(chunk.g.position, CONFIG.CHUNK_SIZE);
+                        chunk.g.visible = this.frustum.intersectsSphere(sphere);
+                        if (chunk.light) chunk.light.visible = (maxDist <= 1);
+                    }
+                });
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+    </script>
+</body>
+</html>
