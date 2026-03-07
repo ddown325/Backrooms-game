@@ -19,8 +19,46 @@ export class InputManager {
         this.joyKnob = document.getElementById('joy-knob');
         
         this.isMobile = 'ontouchstart' in window;
+        this.gamepad = null;
 
         this.bindEvents();
+        window.addEventListener("gamepadconnected", (e) => {
+            this.gamepad = e.gamepad.index;
+        });
+
+        window.addEventListener("gamepaddisconnected", () => {
+            this.gamepad = null;
+        });
+    }
+
+    getControllerType() {
+        if (this.gamepad !== null) return 'gamepad';
+        if (this.isMobile) return 'mobile';
+        return 'keyboard';
+    }
+
+    update() {
+        if (this.gamepad !== null) {
+            const gp = navigator.getGamepads()[this.gamepad];
+            
+            // Movement (left stick)
+            const lStickX = gp.axes[0];
+            const lStickY = gp.axes[1];
+            this.move.str = Math.abs(lStickX) > 0.1 ? lStickX : 0;
+            this.move.fwd = Math.abs(lStickY) > 0.1 ? -lStickY : 0;
+
+            // Look (right stick)
+            const rStickX = gp.axes[2];
+            const rStickY = gp.axes[3];
+            this.look.x += Math.abs(rStickX) > 0.15 ? rStickX * 25 : 0;
+            this.look.y += Math.abs(rStickY) > 0.15 ? rStickY * 25 : 0;
+
+            // Actions (A button)
+            if (gp.buttons[0].pressed) {
+                this.pickup = true;
+                this.drink = true;
+            }
+        }
     }
 
     bindEvents() {

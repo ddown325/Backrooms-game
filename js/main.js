@@ -46,7 +46,6 @@ class App {
         };
         
         this.pickupPrompt = document.getElementById('pickup-prompt');
-        this.isMobile = this.input.isMobile;
 
         this.frustum = new THREE.Frustum();
         this.projMatrix = new THREE.Matrix4();
@@ -115,7 +114,8 @@ class App {
     static animate() {
         requestAnimationFrame(this.animate);
         const dt = Math.min(this.clock.getDelta(), 0.1);
-
+        
+        this.input.update(); // Poll gamepad state
         this.player.update(dt, this.input, this.activeWalls, this.activeItems);
 
         const pcx = Math.round(this.player.yaw.position.x / CONFIG.CHUNK_SIZE);
@@ -140,21 +140,32 @@ class App {
         this.frustum.setFromProjectionMatrix(this.projMatrix);
 
         let foundItem = false;
-        if (!this.isMobile) {
-            for(const item of this.activeItems) {
-                if (!item.parent.visible || !item.visible) continue;
-                const dist = this.player.yaw.position.distanceTo(item.getWorldPosition(new THREE.Vector3()));
-                if (dist < CONFIG.PICKUP_RADIUS) {
+        const controllerType = this.input.getControllerType();
+
+        for(const item of this.activeItems) {
+            if (!item.parent.visible || !item.visible) continue;
+            const dist = this.player.yaw.position.distanceTo(item.getWorldPosition(new THREE.Vector3()));
+            if (dist < CONFIG.PICKUP_RADIUS) {
+                if (controllerType === 'mobile') {
+                    item.material.color.set(0xffffff); // Highlight effect
+                } else {
                     const screenPos = item.getWorldPosition(new THREE.Vector3()).project(this.camera);
                     this.pickupPrompt.style.display = 'block';
                     this.pickupPrompt.style.left = `${(screenPos.x * 0.5 + 0.5) * window.innerWidth}px`;
                     this.pickupPrompt.style.top = `${(-screenPos.y * 0.5 + 0.5) * window.innerHeight}px`;
+                    this.pickupPrompt.innerText = controllerType === 'gamepad' ? 'A' : 'E';
                     foundItem = true;
                     break;
                 }
+            } else {
+                 if (controllerType === 'mobile') {
+                    item.material.color.set(0x88ccff); // Reset color
+                }
             }
         }
-        if (!foundItem) this.pickupPrompt.style.display = 'none';
+        if (!foundItem && controllerType !== 'mobile') {
+            this.pickupPrompt.style.display = 'none';
+        }
 
         this.chunks.forEach((chunk, key) => {
             const distX = Math.abs(chunk.cx - pcx);
