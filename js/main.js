@@ -73,7 +73,7 @@ class App {
         const f = new THREE.Mesh(this.geo.plane, b.t === 'Y' ? this.mats.floor : new THREE.MeshLambertMaterial({color: b.fog}));
         f.rotation.x = -Math.PI/2; group.add(f);
         
-        const c = new THREE.Mesh(this.geo.plane, this.mats.ceil);
+        const c = new THREE.Mesh(this.geo.plane, b.t === 'Y' ? this.mats.ceil : new THREE.MeshLambertMaterial({color: b.fog}));
         c.position.y = CONFIG.WALL_HEIGHT; c.rotation.x = Math.PI/2; group.add(c);
 
         const light = new THREE.PointLight(0xffffee, 0.5, CONFIG.CHUNK_SIZE * 1.4);
