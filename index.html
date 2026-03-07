@@ -98,7 +98,7 @@
             WALK_SPEED: 95, // Base speed
             RUN_SPEED: 145, // Not used yet, reserved for sprint
             SANITY_DRAIN: 0.8,
-            PICKUP_RADIUS: 1.8,
+            PICKUP_RADIUS: 3.6,
             WALL_THICKNESS: 0.6,
             WALL_HEIGHT: 4.0
         };
@@ -425,7 +425,7 @@
                 
                 // Variable Lengths: 40% to 90% of chunk size
                 const vLen = (0.4 + (seed * 0.5)) * CONFIG.CHUNK_SIZE;
-                const hLen = (0.4 + (EngineMath.getHash(cz, cx) * 0.5)) * CONFIG.CHUNK_SIZE;
+                const hLen = (0.4 + (EngineMath.getH(cz, cx) * 0.5)) * CONFIG.CHUNK_SIZE;
 
                 const vGeo = new THREE.BoxGeometry(CONFIG.WALL_THICKNESS, CONFIG.WALL_HEIGHT, vLen);
                 const hGeo = new THREE.BoxGeometry(hLen, CONFIG.WALL_HEIGHT, CONFIG.WALL_THICKNESS);
