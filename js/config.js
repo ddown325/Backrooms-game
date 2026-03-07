@@ -5,7 +5,7 @@ export const CONFIG = {
     WALK_SPEED: 95, // Base speed
     RUN_SPEED: 145, // Not used yet, reserved for sprint
     SANITY_DRAIN: 0.8,
-    PICKUP_RADIUS: 1.8,
+    PICKUP_RADIUS: 3.6,
     WALL_THICKNESS: 0.6,
     WALL_HEIGHT: 4.0
 };

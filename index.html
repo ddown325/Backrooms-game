@@ -60,7 +60,7 @@
 
     <div id="overlay">
         <h1 style="letter-spacing: 5px; font-size: 3rem;">THE BACKROOMS</h1>
-        <p>PROCEDURAL GENERATION ENGINE v4.0</p>
+        <p>PROCEDURAL GENERATION ENGINE v4.0 beta 0.05</p>
         <div>
             <button class="btn-start" onclick="App.start('LOW')">START (LOW GFX)</button>
             <button class="btn-start" onclick="App.start('HIGH')">START (ULTRA GFX)</button>
@@ -509,43 +509,3 @@
     </script>
 </body>
 </html>
-=======
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Backrooms - Level 0</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-</head>
-<body>
-
-    <div id="overlay">
-        <h1 style="letter-spacing: 5px; font-size: 3rem;">THE BACKROOMS</h1>
-        <p>PROCEDURAL GENERATION ENGINE v4.0</p>
-        <div>
-            <button class="btn-start" onclick="App.start('LOW')">START (LOW GFX)</button>
-            <button class="btn-start" onclick="App.start('HIGH')">START (ULTRA GFX)</button>
-        </div>
-        <div id="credit">Engineered by Kantasu</div>
-    </div>
-
-    <div id="hud">
-        LEVEL: <span id="ui-lvl" style="color:#fff;">0</span> | BIOME: <span id="ui-biome">YELLOW</span><br>
-        SANITY: <div class="bar-bg"><div id="sanity-fill"></div></div>
-        ALMOND WATER: <span id="ui-water">0</span>
-    </div>
-
-    <div id="mobile-controls">
-        <div id="joy-base"><div id="joy-knob"></div></div>
-        <div id="btn-drink">DRINK</div>
-        <div id="btn-pickup">PICKUP</div>
-    </div>
-    
-    <div id="pickup-prompt">E</div>
-
-    <script src="js/main.js" type="module"></script>
-</body>
-</html>
->>>>>>> fb17958 (added pickup)
