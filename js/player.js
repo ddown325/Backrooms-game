@@ -73,9 +73,19 @@ export class Player {
         this.velocity.x = (moveVector.y * -Math.sin(this.yaw.rotation.y) + moveVector.x * Math.sin(this.yaw.rotation.y + Math.PI/2)) * speed;
         this.velocity.z = (moveVector.y * -Math.cos(this.yaw.rotation.y) + moveVector.x * Math.cos(this.yaw.rotation.y + Math.PI/2)) * speed;
 
+        const oldX = this.yaw.position.x;
         this.yaw.position.x += this.velocity.x * dt;
+        if (this.checkWallCollision(walls)) {
+            this.yaw.position.x = oldX;
+        }
+
+        const oldZ = this.yaw.position.z;
         this.yaw.position.z += this.velocity.z * dt;
-        this.collide(walls);
+        if (this.checkWallCollision(walls)) {
+            this.yaw.position.z = oldZ;
+        }
+
+        this.handlePillarCollision(walls);
 
         const speedMagnitude = moveVector.length() * speed;
         if (speedMagnitude > 0.1) {
@@ -101,24 +111,34 @@ export class Player {
         document.getElementById('ui-water').innerText = this.water;
     }
 
-    collide(walls) {
-        this.bbox.setFromCenterAndSize(this.yaw.position, new THREE.Vector3(0.5, CONFIG.PLAYER_HEIGHT, 0.5));
-        walls.forEach(wall => {
+    checkWallCollision(walls) {
+        this.bbox.setFromCenterAndSize(this.yaw.position, new THREE.Vector3(0.8, CONFIG.PLAYER_HEIGHT, 0.8));
+        for (const wall of walls) {
+            if (wall.userData.isPillar) continue;
             const wallBBox = new THREE.Box3().setFromObject(wall);
             if (this.bbox.intersectsBox(wallBBox)) {
-                const intersection = this.bbox.clone().intersect(wallBBox);
-                const penetration = new THREE.Vector3();
-                intersection.getSize(penetration);
+                return true;
+            }
+        }
+        return false;
+    }
 
-                const velSignX = Math.sign(this.velocity.x);
-                const velSignZ = Math.sign(this.velocity.z);
+    handlePillarCollision(walls) {
+        for (const wall of walls) {
+            if (wall.userData.isPillar) {
+                const pillarPos = wall.position;
+                const playerPos = this.yaw.position;
+                const distSq = playerPos.distanceToSquared(pillarPos);
+                const totalRadius = wall.userData.radius + 0.4; // player radius
+                const totalRadiusSq = totalRadius * totalRadius;
 
-                if (penetration.x < penetration.z) {
-                    this.yaw.position.x -= velSignX * penetration.x;
-                } else {
-                    this.yaw.position.z -= velSignZ * penetration.z;
+                if (distSq < totalRadiusSq) {
+                    const dist = Math.sqrt(distSq);
+                    const overlap = totalRadius - dist;
+                    const pushVector = playerPos.clone().sub(pillarPos).normalize().multiplyScalar(overlap);
+                    this.yaw.position.add(pushVector);
                 }
             }
-        });
+        }
     }
 }

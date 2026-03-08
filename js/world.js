@@ -22,10 +22,14 @@ export class World {
         this.itemsGroup = new THREE.Group();
         this.scene.add(this.itemsGroup);
 
+        const wallTexture = TextureFactory.generate('wallpaper');
+        wallTexture.wrapS = THREE.RepeatWrapping;
+        wallTexture.wrapT = THREE.RepeatWrapping;
+
         this.mats = {
             floor: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('carpet'), color: 0xffffff }),
             ceil: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('ceiling'), color: 0xffffff }),
-            wallY: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('wallpaper'), color: 0xffffff }),
+            wallY: new THREE.MeshLambertMaterial({ map: wallTexture, color: 0xffffff }),
             waterBottle: new THREE.MeshStandardMaterial({
                 color: 0x88ccff,
                 transparent: true,
@@ -48,7 +52,7 @@ export class World {
     getBiome(cx, cz) {
         const n = Math.sin(cx * 0.2) * Math.cos(cz * 0.2);
         if (n < -0.7) return { name: "BLUE", t: 'B', fog: 0x000000, drain: -0.4 };
-        if (n > 0.6) return { name: "RED", t: 'R', fog: 0x000000, drain: -4.0 };
+        if (n > 0.6) return { name: "RED", t: 'R', fog: 0x000000, drain: -2.0 };
         return { name: "YELLOW", t: 'Y', fog: 0x000000, drain: -0.6 };
     }
 
@@ -87,9 +91,21 @@ export class World {
 
         const item = createItem(chunkPosition, this.mats, seed);
         if (item) {
-            this.itemsGroup.add(item);
-            this.activeItems.push(item);
-            chunkData.items.push(item);
+            const itemBBox = new THREE.Box3().setFromObject(item);
+            let intersects = false;
+            for(const wall of walls) {
+                const wallBBox = new THREE.Box3().setFromObject(wall);
+                if (itemBBox.intersectsBox(wallBBox)) {
+                    intersects = true;
+                    break;
+                }
+            }
+
+            if (!intersects) {
+                this.itemsGroup.add(item);
+                this.activeItems.push(item);
+                chunkData.items.push(item);
+            }
         }
 
         this.chunks.set(key, chunkData);
