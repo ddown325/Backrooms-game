@@ -94,34 +94,30 @@ class App {
         }
         
         const controllerType = this.input.getControllerType();
-        const canDrink = this.player.water > 0 && this.player.sanity < 100;
-
         this.pickupPrompt.style.display = 'none';
-        if (controllerType === 'mobile') {
-            this.mobileActionButton.innerText = ' ';
-        }
 
         if (closestItem) {
             closestItem.children.forEach(c => c.material.color.set(0xffffff));
             if (controllerType === 'mobile') {
                 this.mobileActionButton.innerText = 'PICKUP';
             } else {
-                this.pickupPrompt.style.display = 'block';
-                this.pickupPrompt.innerText = `[${controllerType === 'gamepad' ? 'A' : 'E'}] PICKUP`;
+                const screenPos = new THREE.Vector3();
+                closestItem.getWorldPosition(screenPos);
+                screenPos.project(this.camera);
+
+                if (screenPos.z < 1) {
+                    this.pickupPrompt.style.display = 'block';
+                    this.pickupPrompt.innerText = controllerType === 'gamepad' ? 'A' : 'E';
+                    const screenX = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+                    const screenY = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+                    this.pickupPrompt.style.left = `${screenX}px`;
+                    this.pickupPrompt.style.top = `${screenY}px`;
+                }
             }
-        } else if (canDrink) {
+        } else {
             if (controllerType === 'mobile') {
                 this.mobileActionButton.innerText = 'DRINK';
-            } else {
-                this.pickupPrompt.style.display = 'block';
-                this.pickupPrompt.innerText = `[${controllerType === 'gamepad' ? 'A' : 'E'}] DRINK`;
             }
-        }
-
-        if (this.pickupPrompt.style.display === 'block'){
-            const screenPos = this.player.yaw.position.clone().project(this.camera);
-            this.pickupPrompt.style.left = `${(screenPos.x * 0.5 + 0.5) * window.innerWidth}px`;
-            this.pickupPrompt.style.top = `${(-screenPos.y * 0.5 + 0.5) * window.innerHeight + 30}px`;
         }
 
         this.renderer.render(this.scene, this.camera);
