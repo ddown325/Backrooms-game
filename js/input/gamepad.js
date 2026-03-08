@@ -3,6 +3,7 @@ export class GamepadInput {
         this.manager = manager;
         this.gamepad = -1;
         this.prevButtonStates = {};
+        this.actionPressed = false;
 
         window.addEventListener("gamepadconnected", (e) => {
             this.gamepad = e.gamepad.index;
@@ -33,14 +34,21 @@ export class GamepadInput {
         const gp = navigator.getGamepads()[this.gamepad];
         return gp && gp.buttons[10].pressed;
     }
+    
+    isActionPressed() {
+        return this.actionPressed;
+    }
 
     update() {
         if (this.gamepad === -1) return;
         const gp = navigator.getGamepads()[this.gamepad];
         if (!gp) return;
 
+        this.actionPressed = (gp.buttons[0] && gp.buttons[0].pressed && !this.prevButtonStates[0]) || (gp.buttons[2] && gp.buttons[2].pressed && !this.prevButtonStates[2]);
+
         const startButtonPressed = gp.buttons[9] && gp.buttons[9].pressed && !this.prevButtonStates[9];
         if (startButtonPressed) {
+            document.body.requestPointerLock();
             const elem = document.documentElement;
             if (elem.requestFullscreen) {
                 elem.requestFullscreen().catch(err => {

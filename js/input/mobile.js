@@ -18,6 +18,7 @@ export class MobileInput {
         const touchHandler = (e) => {
             if (document.getElementById('overlay').style.display === 'none') {
                 e.preventDefault();
+                document.body.requestPointerLock();
                 const elem = document.documentElement;
                 if (elem.requestFullscreen) {
                     elem.requestFullscreen().catch(err => {

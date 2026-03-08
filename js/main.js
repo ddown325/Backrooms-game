@@ -25,14 +25,12 @@ class App {
         document.body.appendChild(this.renderer.domElement);
 
         this.renderer.domElement.addEventListener('click', () => {
-            if (!document.pointerLockElement) {
-                document.body.requestPointerLock();
-                const elem = document.documentElement;
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(err => {
-                        console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-                    });
-                }
+            document.body.requestPointerLock();
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
             }
         });
 
@@ -171,7 +169,6 @@ if (startButtons.length > 0 && overlay) {
 
     let lastStickX = 0;
     let lastDPadX = 0;
-    let prevButtonStates = {};
     let menuLoopId;
 
     const menuLoop = () => {
@@ -189,7 +186,7 @@ if (startButtons.length > 0 && overlay) {
         updateMenuSelection();
         inputManager.update();
 
-        const gp = navigator.getGamepads()[inputManager.gamepad];
+        const gp = navigator.getGamepads()[inputManager.gamepadInput.gamepad];
         if (gp) {
             const stickX = gp.axes[0];
             if (stickX < -0.5 && lastStickX >= -0.5) {
@@ -207,15 +204,10 @@ if (startButtons.length > 0 && overlay) {
             }
             lastDPadX = dpadX;
 
-            const actionButtonPressed = gp.buttons[0] && gp.buttons[0].pressed && !(prevButtonStates[0]);
-            if (actionButtonPressed) {
+            if (inputManager.gamepadInput.isActionPressed()) {
                 startButtons[selection].click();
                 if(menuLoopId) cancelAnimationFrame(menuLoopId);
                 return;
-            }
-
-            for (let i = 0; i < gp.buttons.length; i++) {
-                prevButtonStates[i] = gp.buttons[i] ? gp.buttons[i].pressed : false;
             }
         }
         
