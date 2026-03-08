@@ -59,11 +59,11 @@ export class MobileInput {
                                 knobX = Math.cos(angle) * maxDist;
                                 knobY = Math.sin(angle) * maxDist;
                             }
-                            joyKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
+                            joyKnob.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
 
                             const power = Math.min(dist, maxDist) / maxDist;
-                            this.manager.move.fwd = Math.sin(angle) * power;
-                            this.manager.move.str = -Math.cos(angle) * power;
+                            this.manager.move.fwd = Math.sin(angle) * power * -1;
+                            this.manager.move.str = Math.cos(angle) * power;
                         }
                         
                         if (t.identifier === this.touch.lookId) {
@@ -72,15 +72,15 @@ export class MobileInput {
                             this.touch.lookX = t.clientX;
                             this.touch.lookY = t.clientY;
                             
-                            this.manager.look.x += dx * 4;
-                            this.manager.look.y += dy * 4;
+                            this.manager.look.x += dx * 2;
+                            this.manager.look.y += dy * 2;
                         }
                     } else if (e.type === 'touchend' || e.type === 'touchcancel') {
                         if (t.identifier === this.touch.joyId) {
                             this.touch.joyId = -1;
                             this.manager.move.fwd = 0;
                             this.manager.move.str = 0;
-                            joyKnob.style.transform = 'translate(0, 0)';
+                            joyKnob.style.transform = 'translate(-50%, -50%)';
                         }
                         
                         if (t.identifier === this.touch.lookId) {
