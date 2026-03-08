@@ -18,6 +18,12 @@ export class MobileInput {
         const touchHandler = (e) => {
             if (document.getElementById('overlay').style.display === 'none') {
                 e.preventDefault();
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    });
+                }
 
                 for (const t of e.changedTouches) {
                     if (e.type === 'touchstart') {
@@ -35,13 +41,6 @@ export class MobileInput {
                             this.touch.lookId = t.identifier;
                             this.touch.lookX = t.clientX;
                             this.touch.lookY = t.clientY;
-                        } else {
-                            const elem = document.documentElement;
-                            if (elem.requestFullscreen) {
-                                elem.requestFullscreen().catch(err => {
-                                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-                                });
-                            }
                         }
                     } else if (e.type === 'touchmove') {
                         if (t.identifier === this.touch.joyId) {
@@ -71,8 +70,8 @@ export class MobileInput {
                             this.touch.lookX = t.clientX;
                             this.touch.lookY = t.clientY;
                             
-                            this.manager.look.x += dx * 2;
-                            this.manager.look.y += dy * 2;
+                            this.manager.look.x += dx * 3;
+                            this.manager.look.y += dy * 3;
                         }
                     } else if (e.type === 'touchend' || e.type === 'touchcancel') {
                         if (t.identifier === this.touch.joyId) {
