@@ -8,6 +8,7 @@ const inputManager = new InputManager();
 
 class App {
     static start(gfx) {
+        sessionStorage.clear();
         document.getElementById('overlay').style.display = 'none';
         
         const elem = document.documentElement;

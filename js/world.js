@@ -155,15 +155,14 @@ export class World {
         let targetColor = null;
 
         const red_transition_start = red_threshold - transition_width;
+        const blue_transition_start = blue_threshold + transition_width;
+
         if (n > red_transition_start) {
             targetColor = this.redColor;
-            lerpFactor = Math.min(1, (n - red_transition_start) / transition_width);
-        }
-
-        const blue_transition_start = blue_threshold + transition_width;
-        if (n < blue_transition_start) {
+            lerpFactor = Math.min(1, (n - red_transition_start) / (transition_width * 2));
+        } else if (n < blue_transition_start) {
             targetColor = this.blueColor;
-            lerpFactor = Math.min(1, (blue_transition_start - n) / transition_width);
+            lerpFactor = Math.min(1, (blue_transition_start - n) / (transition_width * 2));
         }
         
         const newColor = this.baseColor.clone();
