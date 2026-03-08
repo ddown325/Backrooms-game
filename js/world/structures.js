@@ -42,6 +42,9 @@ function setTextureRepeat(geo) {
 }
 
 export function createStructures(chunkPosition, material, seed) {
+    if (chunkPosition.x === 0 && chunkPosition.y === 0) {
+        return [];
+    }
     const structureType = seed * 10;
     const vLen = (0.1 + (seed * 0.9)) * CONFIG.CHUNK_SIZE;
     const hLen = (0.1 + (EngineMath.getHash(chunkPosition.z, chunkPosition.x) * 0.9)) * CONFIG.CHUNK_SIZE;

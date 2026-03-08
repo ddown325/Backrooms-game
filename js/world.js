@@ -188,7 +188,9 @@ export class World {
 
         this.mats.floor.color.copy(newColor);
         this.mats.ceil.color.copy(newColor);
+        this.mats.ceil.color.multiplyScalar(0.85);
         this.mats.wallY.color.copy(newColor);
+        this.mats.wallY.color.multiplyScalar(1.4);
 
         return biomeInfo;
     }
