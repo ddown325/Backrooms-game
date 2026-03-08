@@ -36,7 +36,7 @@ export class Player {
         let min_dist = CONFIG.PICKUP_RADIUS;
 
         for (const item of items) {
-            if (!item.parent.visible || !item.visible || !item.userData.isPickup) continue;
+            if (!item.parent.visible || !item.visible || !item.userData.isPickup || item.userData.isPickedUp) continue;
             const dist = this.yaw.position.distanceTo(item.getWorldPosition(new THREE.Vector3()));
             if (dist < min_dist) {
                 min_dist = dist;
@@ -45,16 +45,15 @@ export class Player {
         }
 
         if (closestItem) {
-            const itemIndex = items.indexOf(closestItem);
-            if (itemIndex > -1) {
-                items.splice(itemIndex, 1);
-                closestItem.visible = false;
-                closestItem.position.y = -500;
-                this.water++;
-                this.actionCooldown = 0.2;
-                this.updateUI();
-                pickedUp = true;
+            closestItem.userData.isPickedUp = true;
+            closestItem.visible = false; // Hide it immediately
+            if (closestItem.userData.bottleId) {
+                sessionStorage.setItem(closestItem.userData.bottleId, 'true');
             }
+            this.water++;
+            this.actionCooldown = 0.2;
+            this.updateUI();
+            pickedUp = true;
         }
         return pickedUp;
     }

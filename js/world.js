@@ -1,6 +1,10 @@
 import { CONFIG } from './config.js';
 import { EngineMath } from './utils.js';
 import { TextureFactory } from './textures.js';
+import { createFloor } from './world/floor.js';
+import { createCeiling } from './world/ceiling.js';
+import { createWalls } from './world/wall.js';
+import { createItem } from './world/item.js';
 
 export class World {
     constructor(scene) {
@@ -9,12 +13,19 @@ export class World {
         this.activeWalls = [];
         this.activeItems = [];
 
+        this.floorGroup = new THREE.Group();
+        this.scene.add(this.floorGroup);
+        this.ceilingGroup = new THREE.Group();
+        this.scene.add(this.ceilingGroup);
+        this.wallsGroup = new THREE.Group();
+        this.scene.add(this.wallsGroup);
+        this.itemsGroup = new THREE.Group();
+        this.scene.add(this.itemsGroup);
+
         this.mats = {
-            floor: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('carpet') }),
-            ceil: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('ceiling') }),
-            wallY: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('wallpaper') }),
-            wallB: new THREE.MeshLambertMaterial({ color: 0x002244 }),
-            wallR: new THREE.MeshLambertMaterial({ color: 0x330000 }),
+            floor: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('carpet'), color: 0xffffff }),
+            ceil: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('ceiling'), color: 0xffffff }),
+            wallY: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('wallpaper'), color: 0xffffff }),
             waterBottle: new THREE.MeshStandardMaterial({
                 color: 0x88ccff,
                 transparent: true,
@@ -28,10 +39,10 @@ export class World {
                 metalness: 0
             })
         };
-        
-        this.geo = {
-            plane: new THREE.PlaneGeometry(CONFIG.CHUNK_SIZE, CONFIG.CHUNK_SIZE)
-        };
+
+        this.baseColor = new THREE.Color(0xffffff);
+        this.redColor = new THREE.Color(0.8, 0.1, 0.1);
+        this.blueColor = new THREE.Color(0.1, 0.1, 0.8);
     }
 
     getBiome(cx, cz) {
@@ -47,65 +58,41 @@ export class World {
 
         const b = this.getBiome(cx, cz);
         const seed = EngineMath.getHash(cx, cz);
-        const group = new THREE.Group();
-
-        const f = new THREE.Mesh(this.geo.plane, b.t === 'Y' ? this.mats.floor : new THREE.MeshLambertMaterial({color: b.fog}));
-        f.rotation.x = -Math.PI/2; group.add(f);
         
-        const c = new THREE.Mesh(this.geo.plane, b.t === 'Y' ? this.mats.ceil : new THREE.MeshLambertMaterial({color: b.fog}));
-        c.position.y = CONFIG.WALL_HEIGHT; c.rotation.x = Math.PI/2; group.add(c);
+        const chunkPosition = new THREE.Vector3(cx * CONFIG.CHUNK_SIZE, 0, cz * CONFIG.CHUNK_SIZE);
 
-        const light = new THREE.PointLight(0xffffee, 0.5, CONFIG.CHUNK_SIZE * 1.4);
-        light.position.set(0, 3.8, 0);
-        group.add(light);
+        const chunkData = {
+            cx, cz, b,
+            position: chunkPosition,
+            floor: null,
+            ceiling: null,
+            walls: [],
+            items: []
+        };
 
-        let wMat = b.t === 'R' ? this.mats.wallR : (b.t === 'B' ? this.mats.wallB : this.mats.wallY);
+        const floor = createFloor(chunkPosition, this.mats.floor);
+        this.floorGroup.add(floor);
+        chunkData.floor = floor;
 
-        const vLen = (0.4 + (seed * 0.5)) * CONFIG.CHUNK_SIZE;
-        const hLen = (0.4 + (EngineMath.getHash(cz, cx) * 0.5)) * CONFIG.CHUNK_SIZE;
+        const ceiling = createCeiling(chunkPosition, this.mats.ceil);
+        this.ceilingGroup.add(ceiling);
+        chunkData.ceiling = ceiling;
 
-        const vGeo = new THREE.BoxGeometry(CONFIG.WALL_THICKNESS, CONFIG.WALL_HEIGHT, vLen);
-        const hGeo = new THREE.BoxGeometry(hLen, CONFIG.WALL_HEIGHT, CONFIG.WALL_THICKNESS);
+        const walls = createWalls(chunkPosition, this.mats.wallY, seed);
+        walls.forEach(wall => {
+            this.wallsGroup.add(wall);
+            this.activeWalls.push(wall);
+            chunkData.walls.push(wall);
+        });
 
-        if (seed > 0.4) {
-            const wV = new THREE.Mesh(vGeo, wMat);
-            wV.position.set(-CONFIG.CHUNK_SIZE/2, CONFIG.WALL_HEIGHT/2, 0);
-            group.add(wV); this.activeWalls.push(wV);
+        const item = createItem(chunkPosition, this.mats, seed);
+        if (item) {
+            this.itemsGroup.add(item);
+            this.activeItems.push(item);
+            chunkData.items.push(item);
         }
 
-        if (seed < 0.6) {
-            const wH = new THREE.Mesh(hGeo, wMat);
-            wH.position.set(0, CONFIG.WALL_HEIGHT/2, -CONFIG.CHUNK_SIZE/2);
-            group.add(wH); this.activeWalls.push(wH);
-        }
-
-        if (seed > 0.95) {
-            const bottle = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.4, 12), this.mats.waterBottle.clone());
-            body.position.y = 0.2;
-            body.userData.originalColor = this.mats.waterBottle.color.clone();
-
-            const water = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 0.3, 12), this.mats.waterBottle.clone());
-            water.position.y = 0.15;
-            water.userData.originalColor = this.mats.waterBottle.color.clone();
-
-            const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 12), this.mats.waterCap.clone());
-            cap.position.y = 0.425;
-            cap.userData.originalColor = this.mats.waterCap.color.clone();
-
-            bottle.add(body);
-            bottle.add(water);
-            bottle.add(cap);
-            
-            bottle.position.set((seed-0.5)*10, 0, (seed-0.5)*10);
-            bottle.userData.isPickup = true;
-            group.add(bottle); 
-            this.activeItems.push(bottle);
-        }
-
-        group.position.set(cx * CONFIG.CHUNK_SIZE, 0, cz * CONFIG.CHUNK_SIZE);
-        this.scene.add(group);
-        this.chunks.set(key, { g: group, cx, cz, b, light: light });
+        this.chunks.set(key, chunkData);
     }
 
     update(player, frustum) {
@@ -124,17 +111,70 @@ export class World {
             const maxDist = Math.max(distX, distZ);
             
             if (maxDist > CONFIG.RENDER_DIST) {
-                this.scene.remove(chunk.g);
+                if (chunk.floor) this.floorGroup.remove(chunk.floor);
+                if (chunk.ceiling) this.ceilingGroup.remove(chunk.ceiling);
+
+                chunk.walls.forEach(wall => this.wallsGroup.remove(wall));
+                this.activeWalls = this.activeWalls.filter(w => !chunk.walls.includes(w));
+
+                chunk.items.forEach(item => {
+                    this.itemsGroup.remove(item);
+                    const itemIndex = this.activeItems.indexOf(item);
+                    if(itemIndex > -1) this.activeItems.splice(itemIndex, 1);
+                });
+
                 this.chunks.delete(key);
-                this.activeWalls = this.activeWalls.filter(w => w.parent !== chunk.g);
-                this.activeItems = this.activeItems.filter(i => i.parent !== chunk.g);
             } else {
-                const sphere = new THREE.Sphere(chunk.g.position, CONFIG.CHUNK_SIZE);
-                chunk.g.visible = frustum.intersectsSphere(sphere);
-                if (chunk.light) chunk.light.visible = (maxDist <= 1);
+                const sphere = new THREE.Sphere(chunk.position, CONFIG.CHUNK_SIZE);
+                const isVisible = frustum.intersectsSphere(sphere);
+
+                if(chunk.floor) chunk.floor.visible = isVisible;
+                if(chunk.ceiling) chunk.ceiling.visible = isVisible;
+                chunk.walls.forEach(wall => wall.visible = isVisible);
+                chunk.items.forEach(item => {
+                    if (item.userData.isPickedUp) {
+                        item.visible = false;
+                    } else {
+                        item.visible = isVisible;
+                    }
+                });
             }
         });
+        
+        const biomeInfo = this.getBiome(pcx, pcz);
 
-        return this.getBiome(pcx, pcz);
+        const scaledX = player.yaw.position.x / CONFIG.CHUNK_SIZE;
+        const scaledZ = player.yaw.position.z / CONFIG.CHUNK_SIZE;
+        const n = Math.sin(scaledX * 0.2) * Math.cos(scaledZ * 0.2);
+
+        const red_threshold = 0.6;
+        const blue_threshold = -0.7;
+        const transition_width = 0.075;
+
+        let lerpFactor = 0;
+        let targetColor = null;
+
+        const red_transition_start = red_threshold - transition_width;
+        if (n > red_transition_start) {
+            targetColor = this.redColor;
+            lerpFactor = Math.min(1, (n - red_transition_start) / transition_width);
+        }
+
+        const blue_transition_start = blue_threshold + transition_width;
+        if (n < blue_transition_start) {
+            targetColor = this.blueColor;
+            lerpFactor = Math.min(1, (blue_transition_start - n) / transition_width);
+        }
+        
+        const newColor = this.baseColor.clone();
+        if (targetColor) {
+            newColor.lerp(targetColor, lerpFactor);
+        }
+
+        this.mats.floor.color.copy(newColor);
+        this.mats.ceil.color.copy(newColor);
+        this.mats.wallY.color.copy(newColor);
+
+        return biomeInfo;
     }
 }
