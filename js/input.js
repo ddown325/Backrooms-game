@@ -9,11 +9,11 @@ export class InputManager {
         this.look = { x: 0, y: 0 };
         this.isMobile = 'ontouchstart' in document.documentElement;
 
+        this.pcInput = new PCInput(this);
+        this.gamepadInput = new GamepadInput(this);
         if (this.isMobile) {
             this.mobileInput = new MobileInput(this);
         }
-        this.pcInput = new PCInput(this);
-        this.gamepadInput = new GamepadInput(this);
     }
 
     getControllerType() {
@@ -41,9 +41,12 @@ export class InputManager {
     }
 
     update() {
-        if (this.getControllerType() === 'gamepad') {
+        const controller = this.getControllerType();
+        if (controller === 'gamepad') {
             this.gamepadInput.update();
-        } else if (this.getControllerType() !== 'mobile') {
+        } else if (controller === 'mobile') {
+            // Mobile-specific update logic can be added here if needed
+        } else {
             this.pcInput.update();
         }
     }
