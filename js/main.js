@@ -7,71 +7,83 @@ const inputManager = new InputManager();
 
 class App {
     static start(gfx) {
-        document.getElementById('overlay').style.display = 'none';
-        
-        document.body.requestPointerLock();
+        const overlay = document.getElementById('overlay');
+        overlay.innerHTML = '<h1>LOADING...</h1>';
+        overlay.style.display = 'flex';
 
-        this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x000000);
-        this.scene.fog = new THREE.Fog(0x000000, 1, CONFIG.CHUNK_SIZE * 1.8);
-
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 60);
-        
-        this.renderer = new THREE.WebGLRenderer({ antialias: gfx === 'HIGH', precision: "lowp" });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(gfx === 'LOW' ? 0.6 : (window.devicePixelRatio || 1));
-
-        const canvasContainer = document.getElementById('canvas-container');
-        canvasContainer.appendChild(this.renderer.domElement);
-
-        this.gfx = gfx;
-        if (this.gfx === 'HIGH') {
-            document.getElementById('vhs-overlay').style.display = 'block';
-        }
-
-        this.renderer.domElement.addEventListener('click', () => {
+        setTimeout(() => {
             document.body.requestPointerLock();
-            const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen().catch(err => {
-                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-                });
+
+            this.scene = new THREE.Scene();
+            this.scene.background = new THREE.Color(0x000000);
+            this.scene.fog = new THREE.Fog(0x000000, 1, CONFIG.CHUNK_SIZE * 1.8);
+
+            this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 60);
+            
+            this.renderer = new THREE.WebGLRenderer({ antialias: gfx === 'HIGH', precision: "lowp" });
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+            this.renderer.setPixelRatio(gfx === 'LOW' ? 0.6 : (window.devicePixelRatio || 1));
+
+            const canvasContainer = document.getElementById('canvas-container');
+            canvasContainer.appendChild(this.renderer.domElement);
+
+            this.gfx = gfx;
+            if (this.gfx === 'HIGH') {
+                document.getElementById('vhs-overlay').style.display = 'block';
             }
-        });
 
-        window.addEventListener('resize', this.onWindowResize.bind(this), false);
+            this.renderer.domElement.addEventListener('click', () => {
+                document.body.requestPointerLock();
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    });
+                }
+            });
 
-        this.scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+            window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
-        this.input = inputManager;
-        this.player = new Player(this.scene, this.camera);
+            this.scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
-        if (gfx === 'CONTINUE') {
-            if (!this.player.loadState()) {
+            this.input = inputManager;
+            this.player = new Player(this.scene, this.camera);
+
+            if (gfx === 'CONTINUE') {
+                if (!this.player.loadState()) {
+                    this.player.seed = Math.random();
+                }
+            } else {
+                sessionStorage.clear();
                 this.player.seed = Math.random();
             }
-        } else {
-            sessionStorage.clear();
-            this.player.seed = Math.random();
-        }
 
-        this.world = new World(this.scene);
-        this.clock = new THREE.Clock();
-        this.insanityTimer = 0;
-        
-        this.pickupPrompt = document.getElementById('pickup-prompt');
-        this.mobileActionButton = document.getElementById('btn-action');
+            this.world = new World(this.scene);
+            this.clock = new THREE.Clock();
+            this.insanityTimer = 0;
+            
+            this.pickupPrompt = document.getElementById('pickup-prompt');
+            this.mobileActionButton = document.getElementById('btn-action');
 
-        this.frustum = new THREE.Frustum();
-        this.projMatrix = new THREE.Matrix4();
+            this.frustum = new THREE.Frustum();
+            this.projMatrix = new THREE.Matrix4();
 
-        this.animate = this.animate.bind(this);
-        this.animationId = null;
-        this.animate();
+            this.camera.updateMatrixWorld();
+            this.projMatrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+            this.frustum.setFromProjectionMatrix(this.projMatrix);
+            
+            this.world.update(this.player, this.frustum); 
 
-        this.saveInterval = setInterval(() => {
-            this.player.saveState();
-        }, 30);
+            overlay.style.display = 'none';
+
+            this.animate = this.animate.bind(this);
+            this.animationId = null;
+            this.animate();
+
+            this.saveInterval = setInterval(() => {
+                this.player.saveState();
+            }, 30);
+        }, 50);
     }
 
     static goInsane() {
