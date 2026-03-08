@@ -5,9 +5,6 @@ import { World } from './world.js';
 
 const inputManager = new InputManager();
 
-/**
- * App: Master Controller
- */
 class App {
     static start(gfx) {
         document.getElementById('overlay').style.display = 'none';
@@ -20,8 +17,8 @@ class App {
         }
 
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x0a0a00);
-        this.scene.fog = new THREE.Fog(0x0a0a00, 1, CONFIG.CHUNK_SIZE * 1.8);
+        this.scene.background = new THREE.Color(0x000000);
+        this.scene.fog = new THREE.Fog(0x000000, 1, CONFIG.CHUNK_SIZE * 1.8);
 
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 60);
         
@@ -40,6 +37,7 @@ class App {
         this.clock = new THREE.Clock();
         
         this.pickupPrompt = document.getElementById('pickup-prompt');
+        this.mobileActionButton = document.getElementById('btn-action');
 
         this.frustum = new THREE.Frustum();
         this.projMatrix = new THREE.Matrix4();
@@ -71,37 +69,59 @@ class App {
 
         document.getElementById('ui-biome').innerText = currentBiome.name;
         document.getElementById('ui-biome').style.color = currentBiome.t === 'B' ? '#55aaff' : (currentBiome.t === 'R' ? '#ff5555' : '#ffffaa');
-        this.scene.fog.color.set(currentBiome.fog);
         
         this.player.sanity = Math.max(0, this.player.sanity + currentBiome.drain * dt);
         this.player.updateUI();
 
-        let foundItem = false;
-        const controllerType = this.input.getControllerType();
+        let closestItem = null;
+        let min_dist = CONFIG.PICKUP_RADIUS;
 
-        for(const item of this.world.activeItems) {
-            if (!item.parent.visible || !item.visible) continue;
-            const dist = this.player.yaw.position.distanceTo(item.getWorldPosition(new THREE.Vector3()));
-            if (dist < CONFIG.PICKUP_RADIUS) {
-                if (controllerType === 'mobile') {
-                    item.material.color.set(0xffffff); // Highlight effect
-                } else {
-                    const screenPos = item.getWorldPosition(new THREE.Vector3()).project(this.camera);
-                    this.pickupPrompt.style.display = 'block';
-                    this.pickupPrompt.style.left = `${(screenPos.x * 0.5 + 0.5) * window.innerWidth}px`;
-                    this.pickupPrompt.style.top = `${(-screenPos.y * 0.5 + 0.5) * window.innerHeight}px`;
-                    this.pickupPrompt.innerText = controllerType === 'gamepad' ? 'A' : 'E';
-                    foundItem = true;
-                    break;
-                }
-            } else {
-                 if (controllerType === 'mobile') {
-                    item.material.color.set(0x88ccff); // Reset color
-                }
+        for (const item of this.world.activeItems) {
+            if (item.userData.isPickup) {
+                item.children.forEach(child => {
+                    if (child.userData.originalColor) child.material.color.copy(child.userData.originalColor);
+                });
             }
         }
-        if (!foundItem && controllerType !== 'mobile') {
-            this.pickupPrompt.style.display = 'none';
+
+        for (const item of this.world.activeItems) {
+            if (!item.parent.visible || !item.visible || !item.userData.isPickup) continue;
+            const dist = this.player.yaw.position.distanceTo(item.getWorldPosition(new THREE.Vector3()));
+            if (dist < min_dist) {
+                min_dist = dist;
+                closestItem = item;
+            }
+        }
+        
+        const controllerType = this.input.getControllerType();
+        const canDrink = this.player.water > 0 && this.player.sanity < 100;
+
+        this.pickupPrompt.style.display = 'none';
+        if (controllerType === 'mobile') {
+            this.mobileActionButton.innerText = ' ';
+        }
+
+        if (closestItem) {
+            closestItem.children.forEach(c => c.material.color.set(0xffffff));
+            if (controllerType === 'mobile') {
+                this.mobileActionButton.innerText = 'PICKUP';
+            } else {
+                this.pickupPrompt.style.display = 'block';
+                this.pickupPrompt.innerText = `[${controllerType === 'gamepad' ? 'A' : 'E'}] PICKUP`;
+            }
+        } else if (canDrink) {
+            if (controllerType === 'mobile') {
+                this.mobileActionButton.innerText = 'DRINK';
+            } else {
+                this.pickupPrompt.style.display = 'block';
+                this.pickupPrompt.innerText = `[${controllerType === 'gamepad' ? 'A' : 'E'}] DRINK`;
+            }
+        }
+
+        if (this.pickupPrompt.style.display === 'block'){
+            const screenPos = this.player.yaw.position.clone().project(this.camera);
+            this.pickupPrompt.style.left = `${(screenPos.x * 0.5 + 0.5) * window.innerWidth}px`;
+            this.pickupPrompt.style.top = `${(-screenPos.y * 0.5 + 0.5) * window.innerHeight + 30}px`;
         }
 
         this.renderer.render(this.scene, this.camera);

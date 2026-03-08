@@ -14,20 +14,31 @@ export class World {
             ceil: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('ceiling') }),
             wallY: new THREE.MeshLambertMaterial({ map: TextureFactory.generate('wallpaper') }),
             wallB: new THREE.MeshLambertMaterial({ color: 0x002244 }),
-            wallR: new THREE.MeshLambertMaterial({ color: 0x330000 })
+            wallR: new THREE.MeshLambertMaterial({ color: 0x330000 }),
+            waterBottle: new THREE.MeshStandardMaterial({
+                color: 0x88ccff,
+                transparent: true,
+                opacity: 0.6,
+                roughness: 0.3,
+                metalness: 0.1
+            }),
+            waterCap: new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 1,
+                metalness: 0
+            })
         };
         
         this.geo = {
-            plane: new THREE.PlaneGeometry(CONFIG.CHUNK_SIZE, CONFIG.CHUNK_SIZE),
-            water: new THREE.CylinderGeometry(0.15, 0.15, 0.5, 6)
+            plane: new THREE.PlaneGeometry(CONFIG.CHUNK_SIZE, CONFIG.CHUNK_SIZE)
         };
     }
 
     getBiome(cx, cz) {
         const n = Math.sin(cx * 0.2) * Math.cos(cz * 0.2);
-        if (n < -0.7) return { name: "BLUE", t: 'B', fog: 0x001122, drain: -0.4 };
-        if (n > 0.6) return { name: "RED", t: 'R', fog: 0x110000, drain: -4.0 };
-        return { name: "YELLOW", t: 'Y', fog: 0x0a0a00, drain: -0.6 };
+        if (n < -0.7) return { name: "BLUE", t: 'B', fog: 0x000000, drain: -0.4 };
+        if (n > 0.6) return { name: "RED", t: 'R', fog: 0x000000, drain: -4.0 };
+        return { name: "YELLOW", t: 'Y', fog: 0x000000, drain: -0.6 };
     }
 
     buildChunk(cx, cz) {
@@ -69,10 +80,27 @@ export class World {
         }
 
         if (seed > 0.95) {
-            const water = new THREE.Mesh(this.geo.water, new THREE.MeshBasicMaterial({color:0x88ccff}));
-            water.position.set((seed-0.5)*10, 0.25, (seed-0.5)*10);
-            water.userData.isPickup = true;
-            group.add(water); this.activeItems.push(water);
+            const bottle = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.4, 12), this.mats.waterBottle.clone());
+            body.position.y = 0.2;
+            body.userData.originalColor = this.mats.waterBottle.color.clone();
+
+            const water = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 0.3, 12), this.mats.waterBottle.clone());
+            water.position.y = 0.15;
+            water.userData.originalColor = this.mats.waterBottle.color.clone();
+
+            const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 12), this.mats.waterCap.clone());
+            cap.position.y = 0.425;
+            cap.userData.originalColor = this.mats.waterCap.color.clone();
+
+            bottle.add(body);
+            bottle.add(water);
+            bottle.add(cap);
+            
+            bottle.position.set((seed-0.5)*10, 0, (seed-0.5)*10);
+            bottle.userData.isPickup = true;
+            group.add(bottle); 
+            this.activeItems.push(bottle);
         }
 
         group.position.set(cx * CONFIG.CHUNK_SIZE, 0, cz * CONFIG.CHUNK_SIZE);

@@ -3,9 +3,6 @@ import { EngineMath } from './utils.js';
 
 const SENSITIVITY = 0.002;
 
-/**
- * Player: Handles camera, movement, and player-specific state
- */
 export class Player {
     constructor(scene, camera) {
         this.camera = camera;
@@ -18,90 +15,82 @@ export class Player {
         this.velocity = new THREE.Vector3();
         this.sanity = 100;
         this.water = 0;
-        this.drinkCooldown = 0;
+        this.actionCooldown = 0;
         this.bobTime = 0;
 
         this.bbox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
     }
 
     drinkAlmondWater() {
-        if (this.water > 0 && this.sanity < 100 && this.drinkCooldown <= 0) {
+        if (this.water > 0 && this.sanity < 100) {
             this.water--;
             this.sanity = Math.min(100, this.sanity + 30);
+            this.actionCooldown = 0.5; // Cooldown for any action
             this.updateUI();
         }
     }
     
     pickupItem(items) {
         let pickedUp = false;
-        for (let i = items.length - 1; i >= 0; i--) {
-            let item = items[i];
-            if (!item.parent.visible || !item.userData.isPickup) continue;
-            let iPos = new THREE.Vector3(); item.getWorldPosition(iPos);
-            let dist = this.yaw.position.distanceTo(iPos);
-            
-            if (dist < CONFIG.PICKUP_RADIUS) { 
-                item.visible = false; 
-                item.position.y = -500;
-                items.splice(i, 1);
+        let closestItem = null;
+        let min_dist = CONFIG.PICKUP_RADIUS;
+
+        for (const item of items) {
+            if (!item.parent.visible || !item.visible || !item.userData.isPickup) continue;
+            const dist = this.yaw.position.distanceTo(item.getWorldPosition(new THREE.Vector3()));
+            if (dist < min_dist) {
+                min_dist = dist;
+                closestItem = item;
+            }
+        }
+
+        if (closestItem) {
+            const itemIndex = items.indexOf(closestItem);
+            if (itemIndex > -1) {
+                items.splice(itemIndex, 1);
+                closestItem.visible = false;
+                closestItem.position.y = -500;
                 this.water++;
-                this.drinkCooldown = 0.2; // 200ms cooldown
+                this.actionCooldown = 0.2;
                 this.updateUI();
                 pickedUp = true;
-                break; 
             }
         }
         return pickedUp;
     }
 
     update(dt, input, walls, items) {
-        if (this.drinkCooldown > 0) {
-            this.drinkCooldown -= dt;
-        }
+        if (this.actionCooldown > 0) this.actionCooldown -= dt;
 
         const look = input.consumeLook();
         this.yaw.rotation.y -= look.x * SENSITIVITY;
         this.pitch.rotation.x -= look.y * SENSITIVITY;
         this.pitch.rotation.x = EngineMath.clamp(this.pitch.rotation.x, -Math.PI/2, Math.PI/2);
         
-        let fwd = input.move.fwd;
-        let str = input.move.str;
-        if (Math.abs(fwd) > 0 && Math.abs(str) > 0) {
-            fwd *= 0.7071; str *= 0.7071; // Normalize diagonal speed
-        }
-
-        const speed = CONFIG.WALK_SPEED;
+        const moveVector = new THREE.Vector2(input.move.str, input.move.fwd);
+        if (moveVector.length() > 1) moveVector.normalize();
         
-        this.velocity.x = (fwd * -Math.sin(this.yaw.rotation.y) + str * Math.sin(this.yaw.rotation.y + Math.PI/2)) * speed;
-        this.velocity.z = (fwd * -Math.cos(this.yaw.rotation.y) + str * Math.cos(this.yaw.rotation.y + Math.PI/2)) * speed;
+        const speed = CONFIG.WALK_SPEED;
+        this.velocity.x = (moveVector.y * -Math.sin(this.yaw.rotation.y) + moveVector.x * Math.sin(this.yaw.rotation.y + Math.PI/2)) * speed;
+        this.velocity.z = (moveVector.y * -Math.cos(this.yaw.rotation.y) + moveVector.x * Math.cos(this.yaw.rotation.y + Math.PI/2)) * speed;
 
         this.yaw.position.x += this.velocity.x * dt;
         this.yaw.position.z += this.velocity.z * dt;
         this.collide(walls);
 
-        // Head-bob
-        const speedMagnitude = Math.sqrt(this.velocity.x*this.velocity.x + this.velocity.z*this.velocity.z);
+        const speedMagnitude = moveVector.length() * speed;
         if (speedMagnitude > 0.1) {
             this.bobTime += dt * 7.5;
             this.camera.position.y = Math.sin(this.bobTime) * 0.1;
         } else {
             this.bobTime = 0;
-            this.camera.position.y *= 0.9; // Smoothly return to center
+            this.camera.position.y *= 0.9;
             if (Math.abs(this.camera.position.y) < 0.001) this.camera.position.y = 0;
         }
         this.yaw.position.y = CONFIG.PLAYER_HEIGHT + this.camera.position.y;
 
-
-        const wantsToDrink = input.isDrink();
-        const wantsToPickup = input.isPickup();
-
-        if (wantsToPickup || wantsToDrink) {
-            let itemPickedUp = false;
-            if (wantsToPickup) {
-                itemPickedUp = this.pickupItem(items);
-            }
-            
-            if (wantsToDrink && !itemPickedUp) {
+        if (this.actionCooldown <= 0 && input.isAction()) {
+            if (!this.pickupItem(items)) {
                 this.drinkAlmondWater();
             }
         }
@@ -118,15 +107,17 @@ export class Player {
         walls.forEach(wall => {
             const wallBBox = new THREE.Box3().setFromObject(wall);
             if (this.bbox.intersectsBox(wallBBox)) {
-                
                 const intersection = this.bbox.clone().intersect(wallBBox);
                 const penetration = new THREE.Vector3();
                 intersection.getSize(penetration);
 
+                const velSignX = Math.sign(this.velocity.x);
+                const velSignZ = Math.sign(this.velocity.z);
+
                 if (penetration.x < penetration.z) {
-                    this.yaw.position.x -= Math.sign(this.velocity.x) * penetration.x;
+                    this.yaw.position.x -= velSignX * penetration.x;
                 } else {
-                    this.yaw.position.z -= Math.sign(this.velocity.z) * penetration.z;
+                    this.yaw.position.z -= velSignZ * penetration.z;
                 }
             }
         });
