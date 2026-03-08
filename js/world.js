@@ -46,7 +46,7 @@ export class World {
 
         this.baseColor = new THREE.Color(0xffffff);
         this.redColor = new THREE.Color(0.8, 0.1, 0.1);
-        this.blueColor = new THREE.Color(0.1, 0.1, 0.8);
+        this.blueColor = new THREE.Color(0.37, 0.37, 0.86);
     }
 
     getBiome(cx, cz) {
