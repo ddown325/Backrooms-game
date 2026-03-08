@@ -158,38 +158,61 @@ export class World {
         });
         
         const biomeInfo = this.getBiome(pcx, pcz);
+        let biomeColor = this.baseColor.clone();
 
-        const scaledX = player.yaw.position.x / CONFIG.CHUNK_SIZE;
-        const scaledZ = player.yaw.position.z / CONFIG.CHUNK_SIZE;
-        const n = Math.sin(scaledX * 0.2) * Math.cos(scaledZ * 0.2);
+        if (biomeInfo.name === "RED") {
+            biomeColor.copy(this.redColor);
+        } else if (biomeInfo.name === "BLUE") {
+            biomeColor.copy(this.blueColor);
+        } else { // Current chunk is YELLOW
+            let closestRedDist = Infinity;
+            let closestBlueDist = Infinity;
 
-        const red_threshold = 0.6;
-        const blue_threshold = -0.7;
-        const transition_width = 0.075;
+            for (let x = -1; x <= 1; x++) {
+                for (let z = -1; z <= 1; z++) {
+                    if (x === 0 && z === 0) continue;
+                    const neighborBiome = this.getBiome(pcx + x, pcz + z);
+                    if (neighborBiome.name === "RED" || neighborBiome.name === "BLUE") {
+                        const neighborCenterX = (pcx + x) * CONFIG.CHUNK_SIZE;
+                        const neighborCenterZ = (pcz + z) * CONFIG.CHUNK_SIZE;
+                        const dist = player.yaw.position.distanceTo(new THREE.Vector3(neighborCenterX, 0, neighborCenterZ));
 
-        let lerpFactor = 0;
-        let targetColor = null;
+                        if (neighborBiome.name === "RED") {
+                            if (dist < closestRedDist) closestRedDist = dist;
+                        } else { // BLUE
+                            if (dist < closestBlueDist) closestBlueDist = dist;
+                        }
+                    }
+                }
+            }
+            
+            const minFadeDist = CONFIG.CHUNK_SIZE * 0.5; 
+            const maxFadeDist = CONFIG.CHUNK_SIZE * 1.5;
 
-        const red_transition_start = red_threshold - transition_width;
-        const blue_transition_start = blue_threshold + transition_width;
+            let lerpFactor = 0;
+            let targetColor = null;
 
-        if (n > red_transition_start) {
-            targetColor = this.redColor;
-            lerpFactor = Math.min(1, (n - red_transition_start) / (transition_width * 2));
-        } else if (n < blue_transition_start) {
-            targetColor = this.blueColor;
-            lerpFactor = Math.min(1, (blue_transition_start - n) / (transition_width * 2));
+            if (closestRedDist < closestBlueDist && closestRedDist < maxFadeDist) {
+                targetColor = this.redColor;
+                let t = (maxFadeDist - closestRedDist) / (maxFadeDist - minFadeDist);
+                t = Math.max(0, Math.min(1, t));
+                lerpFactor = t * t * (3.0 - 2.0 * t); // Smoothstep
+            } else if (closestBlueDist < maxFadeDist) {
+                targetColor = this.blueColor;
+                let t = (maxFadeDist - closestBlueDist) / (maxFadeDist - minFadeDist);
+                t = Math.max(0, Math.min(1, t));
+                lerpFactor = t * t * (3.0 - 2.0 * t); // Smoothstep
+            }
+
+            if (targetColor) {
+                biomeColor.lerp(targetColor, lerpFactor);
+            }
         }
-        
-        const newColor = this.baseColor.clone();
-        if (targetColor) {
-            newColor.lerp(targetColor, lerpFactor);
-        }
 
-        this.mats.floor.color.copy(newColor);
-        this.mats.ceil.color.copy(newColor);
+        this.mats.floor.color.copy(biomeColor);
+        this.mats.ceil.color.copy(biomeColor);
         this.mats.ceil.color.multiplyScalar(0.85);
-        this.mats.wallY.color.copy(newColor);
+        this.mats.wallY.color.copy(biomeColor);
         this.mats.wallY.color.multiplyScalar(1.4);
 
         return biomeInfo;

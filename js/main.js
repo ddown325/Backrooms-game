@@ -83,15 +83,13 @@ class App {
                 item.children.forEach(child => {
                     if (child.userData.originalColor) child.material.color.copy(child.userData.originalColor);
                 });
-            }
-        }
 
-        for (const item of this.world.activeItems) {
-            if (!item.parent.visible || !item.visible || !item.userData.isPickup) continue;
-            const dist = this.player.yaw.position.distanceTo(item.getWorldPosition(new THREE.Vector3()));
-            if (dist < min_dist) {
-                min_dist = dist;
-                closestItem = item;
+                if (!item.parent.visible || !item.visible) continue;
+                const dist = this.player.yaw.position.distanceTo(item.getWorldPosition(new THREE.Vector3()));
+                if (dist < min_dist) {
+                    min_dist = dist;
+                    closestItem = item;
+                }
             }
         }
         
