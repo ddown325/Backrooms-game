@@ -22,7 +22,7 @@ class App {
             
             this.renderer = new THREE.WebGLRenderer({ antialias: gfx === 'HIGH', precision: "lowp" });
             this.renderer.setSize(window.innerWidth, window.innerHeight);
-            this.renderer.setPixelRatio(gfx === 'LOW' ? 0.6 : (window.devicePixelRatio || 1));
+            this.renderer.setPixelRatio(gfx === 'LOW' ? 0.3 : (gfx === 'MEDIUM' ? 0.7 : (window.devicePixelRatio || 1)));
 
             const canvasContainer = document.getElementById('canvas-container');
             canvasContainer.appendChild(this.renderer.domElement);
@@ -30,6 +30,8 @@ class App {
             this.gfx = gfx;
             if (this.gfx === 'HIGH') {
                 document.getElementById('vhs-overlay').style.display = 'block';
+            } else if (this.gfx === 'MEDIUM') {
+                document.getElementById('shadow-overlay').style.display = 'block';
             }
 
             this.renderer.domElement.addEventListener('click', () => {
