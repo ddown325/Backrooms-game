@@ -25,7 +25,7 @@ export class Player {
     }
 
     drinkAlmondWater() {
-        if (this.water > 0 && this.sanity < 100) {
+        if (this.water > 0 && this.sanity <= 70) {
             this.water--;
             this.sanity = Math.min(100, this.sanity + 30);
             this.actionCooldown = 0.5; // Cooldown for any action
@@ -47,7 +47,7 @@ export class Player {
             }
         }
 
-        if (closestItem) {
+        if (closestItem && this.water < 8) {
             closestItem.userData.isPickedUp = true;
             closestItem.visible = false; // Hide it immediately
             if (closestItem.userData.bottleId) {
@@ -136,7 +136,7 @@ export class Player {
     updateUI() {
         document.getElementById('sanity-fill').style.width = this.sanity + '%';
         document.getElementById('sanity-fill').style.background = this.sanity < 25 ? 'red' : '#00ff00';
-        document.getElementById('ui-water').innerText = this.water;
+        document.getElementById('ui-water').innerText = this.water + '/8';
     }
 
     checkWallCollision(walls) {

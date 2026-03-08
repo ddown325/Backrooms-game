@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
+
 /* ==========================================================================
            CORE STYLING - OPTIMIZED FOR MOBILE VIEWPORTS
            ========================================================================== */
@@ -76,6 +78,16 @@
             flex-direction: column; align-items: center; justify-content: center;
             z-index: 1000; text-align: center;
         }
+
+        #overlay.insane {
+            background-color: transparent;
+            transition: background-color 2s ease-in;
+        }
+
+        #overlay.insane.active {
+            background-color: black;
+        }
+
         .btn-start {
             background: #ffffaa; color: #000; border: none; padding: 15px 30px;
             font-size: 1.2rem; font-family: inherit; font-weight: bold;
@@ -128,4 +140,17 @@
             border: 2px solid #fff; color: #fff; border-radius: 50%;
             font-size: 28px; font-weight: bold; text-align: center; line-height: 50px;
             z-index: 200; pointer-events: none; transform: translate(-50%, -50%);
+        }
+
+        .insane-text {
+            font-family: 'Creepster', cursive;
+            color: red;
+            text-align: center;
+            font-size: 5rem;
+            opacity: 0;
+            transition: opacity 1.5s ease-in 0.5s;
+        }
+
+        .insane-text.visible {
+            opacity: 1;
         }

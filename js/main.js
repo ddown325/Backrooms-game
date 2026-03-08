@@ -1,4 +1,3 @@
-
 import { CONFIG } from './config.js';
 import { InputManager } from './input.js';
 import { Player } from './player.js';
@@ -58,6 +57,7 @@ class App {
 
         this.world = new World(this.scene);
         this.clock = new THREE.Clock();
+        this.insanityTimer = 0;
         
         this.pickupPrompt = document.getElementById('pickup-prompt');
         this.mobileActionButton = document.getElementById('btn-action');
@@ -66,11 +66,40 @@ class App {
         this.projMatrix = new THREE.Matrix4();
 
         this.animate = this.animate.bind(this);
-        requestAnimationFrame(this.animate);
+        this.animationId = null;
+        this.animate();
 
-        setInterval(() => {
+        this.saveInterval = setInterval(() => {
             this.player.saveState();
         }, 30);
+    }
+
+    static goInsane() {
+        cancelAnimationFrame(this.animationId);
+        clearInterval(this.saveInterval);
+        if (document.exitPointerLock) {
+            document.exitPointerLock();
+        }
+
+        const overlay = document.getElementById('overlay');
+        overlay.innerHTML = '<h1 class="insane-text">YOU HAVE GONE INSANE</h1>';
+        overlay.style.display = 'flex';
+        overlay.className = 'insane';
+
+        setTimeout(() => {
+            overlay.classList.add('active');
+            const insaneText = document.querySelector('.insane-text');
+            if (insaneText) {
+                insaneText.classList.add('visible');
+            }
+        }, 100);
+
+        localStorage.removeItem('playerState');
+        sessionStorage.clear();
+
+        setTimeout(() => {
+            window.location.reload();
+        }, 5000);
     }
 
     static onWindowResize() {
@@ -82,7 +111,7 @@ class App {
     }
 
     static animate() {
-        requestAnimationFrame(this.animate);
+        this.animationId = requestAnimationFrame(this.animate);
         const dt = Math.min(this.clock.getDelta(), 0.1);
         
         this.input.update(); 
@@ -135,6 +164,16 @@ class App {
         
         this.player.sanity = Math.max(0, this.player.sanity + currentBiome.drain * dt);
         this.player.updateUI();
+
+        if (this.player.sanity <= 0) {
+            this.insanityTimer += dt;
+            if (this.insanityTimer >= 25) {
+                this.goInsane();
+                return;
+            }
+        } else {
+            this.insanityTimer = 0;
+        }
 
         let closestItem = null;
         let min_dist = CONFIG.PICKUP_RADIUS;
@@ -198,6 +237,12 @@ window.App = App;
 let selection = 0;
 const startButtons = document.querySelectorAll('.btn-start');
 const overlay = document.getElementById('overlay');
+const continueButton = document.querySelector('.btn-start[onclick*="CONTINUE"]');
+
+if (!localStorage.getItem('playerState')) {
+    continueButton.style.display = 'none';
+}
+
 
 if (startButtons.length > 0 && overlay) {
     const updateMenuSelection = () => {
