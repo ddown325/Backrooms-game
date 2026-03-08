@@ -21,7 +21,14 @@ class App {
         this.renderer = new THREE.WebGLRenderer({ antialias: gfx === 'HIGH', precision: "lowp" });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(gfx === 'LOW' ? 0.6 : (window.devicePixelRatio || 1));
-        document.body.appendChild(this.renderer.domElement);
+
+        const canvasContainer = document.getElementById('canvas-container');
+        canvasContainer.appendChild(this.renderer.domElement);
+
+        this.gfx = gfx;
+        if (this.gfx === 'HIGH') {
+            document.getElementById('vhs-overlay').style.display = 'block';
+        }
 
         this.renderer.domElement.addEventListener('click', () => {
             document.body.requestPointerLock();
@@ -80,6 +87,16 @@ class App {
         
         this.input.update(); 
         this.player.update(dt, this.input, this.world.activeWalls, this.world.activeItems);
+
+        if (this.gfx === 'HIGH') {
+            const sanityEffect = 1 - (this.player.sanity / 100);
+            const canvasContainer = document.getElementById('canvas-container');
+            canvasContainer.style.filter = `blur(${sanityEffect * 1.5}px)`;
+
+            const shakeIntensity = sanityEffect * 0.05;
+            this.camera.position.x += (Math.random() - 0.5) * shakeIntensity;
+            this.camera.position.y += (Math.random() - 0.5) * shakeIntensity;
+        }
 
         this.camera.updateMatrixWorld();
         this.projMatrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
