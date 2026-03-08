@@ -56,9 +56,14 @@ export class World {
         return { name: "YELLOW", t: 'Y', fog: 0x000000, drain: -0.6 };
     }
 
-    buildChunk(cx, cz) {
+    buildChunk(cx, cz, player = null) {
         const key = `${cx},${cz}`;
         if (this.chunks.has(key)) return;
+
+        const playerExclusionZone = player ? new THREE.Box3().setFromCenterAndSize(
+            player.yaw.position,
+            new THREE.Vector3(2, 4, 2) // Safety box around the player
+        ) : null;
 
         const b = this.getBiome(cx, cz);
         const seed = EngineMath.getHash(cx, cz);
@@ -84,6 +89,12 @@ export class World {
 
         const walls = createWalls(chunkPosition, this.mats.wallY, seed);
         walls.forEach(wall => {
+            if (playerExclusionZone) {
+                const wallBBox = new THREE.Box3().setFromObject(wall);
+                if (wallBBox.intersectsBox(playerExclusionZone)) {
+                    return; // Don't add this wall if it intersects
+                }
+            }
             this.wallsGroup.add(wall);
             this.activeWalls.push(wall);
             chunkData.walls.push(wall);
@@ -93,11 +104,18 @@ export class World {
         if (item) {
             const itemBBox = new THREE.Box3().setFromObject(item);
             let intersects = false;
-            for(const wall of walls) {
-                const wallBBox = new THREE.Box3().setFromObject(wall);
-                if (itemBBox.intersectsBox(wallBBox)) {
-                    intersects = true;
-                    break;
+
+            if (playerExclusionZone && itemBBox.intersectsBox(playerExclusionZone)) {
+                intersects = true;
+            }
+
+            if (!intersects) {
+                for(const wall of chunkData.walls) { 
+                    const wallBBox = new THREE.Box3().setFromObject(wall);
+                    if (itemBBox.intersectsBox(wallBBox)) {
+                        intersects = true;
+                        break;
+                    }
                 }
             }
 
@@ -117,7 +135,8 @@ export class World {
         
         for(let x=-CONFIG.RENDER_DIST; x<=CONFIG.RENDER_DIST; x++) {
             for(let z=-CONFIG.RENDER_DIST; z<=CONFIG.RENDER_DIST; z++) {
-                this.buildChunk(pcx+x, pcz+z);
+                const isPlayerChunk = x === 0 && z === 0;
+                this.buildChunk(pcx + x, pcz + z, isPlayerChunk ? player : null);
             }
         }
 
