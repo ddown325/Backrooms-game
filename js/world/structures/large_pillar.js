@@ -1,9 +1,9 @@
 import { CONFIG } from '../../config.js';
 
 export function createLargePillar(chunkPosition, material) {
-    const width = CONFIG.WALL_THICKNESS;
+    const width = CONFIG.WALL_THICKNESS * 2;
     const height = CONFIG.WALL_HEIGHT;
-    const depth = CONFIG.WALL_THICKNESS;
+    const depth = CONFIG.WALL_THICKNESS * 2;
 
     const geo = new THREE.BoxGeometry(width, height, depth);
     
