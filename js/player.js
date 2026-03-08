@@ -6,9 +6,11 @@ const SENSITIVITY = 0.002;
 export class Player {
     constructor(scene, camera) {
         this.camera = camera;
-        this.pitch = new THREE.Object3D();
-        this.pitch.add(camera);
-        this.yaw = new THREE.Object3D();
+        this.tilt = new THREE.Object3D(); // For procedural tilting effects
+        this.tilt.add(camera);
+        this.pitch = new THREE.Object3D(); // For mouse pitch (up/down)
+        this.pitch.add(this.tilt);
+        this.yaw = new THREE.Object3D(); // For mouse yaw (left/right)
         this.yaw.add(this.pitch);
         scene.add(this.yaw);
 
@@ -88,14 +90,33 @@ export class Player {
         this.handlePillarCollision(walls);
 
         const speedMagnitude = moveVector.length() * speed;
+        let targetXTilt = 0;
+        let targetZTilt = 0;
+
         if (speedMagnitude > 0.1) {
             this.bobTime += dt * 7.5;
             this.camera.position.y = Math.sin(this.bobTime) * 0.1;
+
+            // Z-axis rotation (roll) for side-to-side movement
+            const SIDE_TILT_FACTOR = 0.075;
+            targetZTilt = -moveVector.x * SIDE_TILT_FACTOR;
+
+            // X-axis rotation (pitch) for forward/backward movement
+            targetXTilt = -moveVector.y * 0.05;
+
         } else {
             this.bobTime = 0;
             this.camera.position.y *= 0.9;
             if (Math.abs(this.camera.position.y) < 0.001) this.camera.position.y = 0;
         }
+        
+        // Combine tilts into a single quaternion for smooth interpolation
+        const targetEuler = new THREE.Euler(targetXTilt, 0, targetZTilt, 'YXZ');
+        const targetQuaternion = new THREE.Quaternion().setFromEuler(targetEuler);
+
+        // Smoothly interpolate the tilt object's quaternion
+        this.tilt.quaternion.slerp(targetQuaternion, dt * 5);
+
         this.yaw.position.y = CONFIG.PLAYER_HEIGHT + this.camera.position.y;
 
         if (this.actionCooldown <= 0 && input.isAction()) {
