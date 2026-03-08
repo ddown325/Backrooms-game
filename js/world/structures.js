@@ -52,13 +52,13 @@ export function createStructures(chunkPosition, material, seed) {
 
     let structures;
 
-    if (structureType < 0.5) {
+    if (structureType < 0.15) {
         structures = createLargePillar(chunkPosition, material);
-    } else if (structureType < 1.5) {
+    } else if (structureType < 0.45) {
         structures = createSmallPillars(chunkPosition, material, vPosHash);
-    } else if (structureType < 2.0) {
+    } else if (structureType < 0.6) {
         structures = createCirclePillar(chunkPosition, material, vPosHash);
-    } else if (structureType < 3.0) {
+    } else if (structureType < 1.6) {
         structures = createHalfWalls(chunkPosition, material, vLen, hLen, vPosOffset, hPosOffset, seed);
     } else {
         structures = createDefaultWalls(chunkPosition, material, vLen, hLen, vPosOffset, hPosOffset, seed);
