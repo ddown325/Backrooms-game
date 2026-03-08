@@ -1,8 +1,8 @@
-
 export class GamepadInput {
     constructor(manager) {
         this.manager = manager;
         this.gamepad = -1;
+        this.prevButtonStates = {};
 
         window.addEventListener("gamepadconnected", (e) => {
             this.gamepad = e.gamepad.index;
@@ -12,7 +12,10 @@ export class GamepadInput {
         });
 
         window.addEventListener("gamepaddisconnected", (e) => {
-            if (this.gamepad === e.gamepad.index) this.gamepad = -1;
+            if (this.gamepad === e.gamepad.index) {
+                this.gamepad = -1;
+                this.prevButtonStates = {};
+            }
             if (this.manager.isMobile) {
                 document.getElementById('mobile-controls').style.display = 'flex';
             }
@@ -25,10 +28,30 @@ export class GamepadInput {
         return gp && (gp.buttons[0].pressed || gp.buttons[2].pressed);
     }
 
+    isSprinting() {
+        if (this.gamepad === -1) return false;
+        const gp = navigator.getGamepads()[this.gamepad];
+        return gp && gp.buttons[10].pressed;
+    }
+
     update() {
         if (this.gamepad === -1) return;
         const gp = navigator.getGamepads()[this.gamepad];
         if (!gp) return;
+
+        const startButtonPressed = gp.buttons[9] && gp.buttons[9].pressed && !this.prevButtonStates[9];
+        if (startButtonPressed) {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            }
+        }
+
+        for (let i = 0; i < gp.buttons.length; i++) {
+            this.prevButtonStates[i] = gp.buttons[i] ? gp.buttons[i].pressed : false;
+        }
 
         const DEADZONE = 0.25;
         let lsX = gp.axes[0];

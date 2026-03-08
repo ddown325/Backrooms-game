@@ -1,4 +1,3 @@
-
 import { MobileInput } from './input/mobile.js';
 import { PCInput } from './input/pc.js';
 import { GamepadInput } from './input/gamepad.js';
@@ -7,6 +6,7 @@ export class InputManager {
     constructor() {
         this.move = { fwd: 0, str: 0 };
         this.look = { x: 0, y: 0 };
+        this.sprinting = false;
         this.isMobile = 'ontouchstart' in document.documentElement;
         this.mobileInput = null;
 
@@ -53,6 +53,18 @@ export class InputManager {
         return this.pcInput.isAction();
     }
 
+    isSprinting() {
+        const controller = this.getControllerType();
+        if (controller === 'gamepad') {
+            return this.gamepadInput.isSprinting();
+        }
+        if (controller === 'mobile') {
+            return this.mobileInput && this.mobileInput.isSprinting();
+        }
+        return this.pcInput.isSprinting();
+    }
+
+
     consumeLook() {
         const val = { x: this.look.x, y: this.look.y };
         this.look.x = 0; this.look.y = 0;
@@ -64,9 +76,10 @@ export class InputManager {
         if (controller === 'gamepad') {
             this.gamepadInput.update();
         } else if (controller === 'mobile') {
-            // Mobile-specific update logic can be added here if needed
+            // Mobile input is event-driven, no polling update needed.
         } else {
             this.pcInput.update();
         }
+        this.sprinting = this.isSprinting();
     }
 }

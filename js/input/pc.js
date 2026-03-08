@@ -12,14 +12,14 @@ export class PCInput {
                 this.manager.look.x += e.movementX; this.manager.look.y += e.movementY;
             }
         });
-
-        document.addEventListener('mousedown', (e) => {
-            if(!document.pointerLockElement) document.body.requestPointerLock();
-        });
     }
 
     isAction() {
         return this.keys['e'] || this.keys['f'];
+    }
+
+    isSprinting() {
+        return this.keys['shift'];
     }
 
     update() {

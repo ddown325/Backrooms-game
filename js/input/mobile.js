@@ -1,16 +1,15 @@
-
 export class MobileInput {
     constructor(manager) {
         this.manager = manager;
         this.touch = {
             joyId: -1, joyX: 0, joyY: 0,
             lookId: -1, lookX: 0, lookY: 0,
-            actionId: -1
         };
 
         const joyBase = document.getElementById('joy-base');
         const joyKnob = document.getElementById('joy-knob');
         const btnAction = document.getElementById('btn-action');
+        const btnSprint = document.getElementById('btn-sprint');
 
         if (manager.isMobile) {
             document.getElementById('mobile-controls').style.display = 'flex';
@@ -28,20 +27,20 @@ export class MobileInput {
                                 this.touch.joyX = t.clientX;
                                 this.touch.joyY = t.clientY;
                             }
-                        }
-                        
-                        if (this.inside(t, btnAction)) {
-                            if (this.touch.actionId < 0) {
-                                this.touch.actionId = t.identifier;
-                                btnAction.classList.add('active');
-                            }
-                        } 
-                        
-                        if(this.touch.joyId !== t.identifier && this.touch.actionId !== t.identifier) {
-                            if (this.touch.lookId < 0) {
-                                this.touch.lookId = t.identifier;
-                                this.touch.lookX = t.clientX;
-                                this.touch.lookY = t.clientY;
+                        } else if (this.inside(t, btnAction)) {
+                            btnAction.classList.add('active');
+                        } else if (btnSprint && this.inside(t, btnSprint)) {
+                            btnSprint.classList.toggle('active');
+                        } else if (this.touch.lookId < 0) {
+                            this.touch.lookId = t.identifier;
+                            this.touch.lookX = t.clientX;
+                            this.touch.lookY = t.clientY;
+                        } else {
+                            const elem = document.documentElement;
+                            if (elem.requestFullscreen) {
+                                elem.requestFullscreen().catch(err => {
+                                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                                });
                             }
                         }
                     } else if (e.type === 'touchmove') {
@@ -86,11 +85,6 @@ export class MobileInput {
                         if (t.identifier === this.touch.lookId) {
                             this.touch.lookId = -1;
                         }
-                        
-                        if (t.identifier === this.touch.actionId) {
-                            this.touch.actionId = -1;
-                            btnAction.classList.remove('active');
-                        }
                     }
                 }
             }
@@ -103,12 +97,23 @@ export class MobileInput {
     }
 
     inside(touch, element) {
+        if (!element) return false;
         const rect = element.getBoundingClientRect();
         return touch.clientX > rect.left && touch.clientX < rect.right &&
                touch.clientY > rect.top && touch.clientY < rect.bottom;
     }
 
     isAction() {
-        return document.getElementById('btn-action').classList.contains('active');
+        const btn = document.getElementById('btn-action');
+        const isActive = btn.classList.contains('active');
+        if (isActive) {
+            btn.classList.remove('active');
+        }
+        return isActive;
+    }
+
+    isSprinting() {
+        const btnSprint = document.getElementById('btn-sprint');
+        return btnSprint && btnSprint.classList.contains('active');
     }
 }

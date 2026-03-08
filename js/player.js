@@ -71,7 +71,7 @@ export class Player {
         const moveVector = new THREE.Vector2(input.move.str, input.move.fwd);
         if (moveVector.length() > 1) moveVector.normalize();
         
-        const speed = CONFIG.WALK_SPEED;
+        const speed = input.sprinting ? CONFIG.WALK_SPEED * 1.5 : CONFIG.WALK_SPEED;
         this.velocity.x = (moveVector.y * -Math.sin(this.yaw.rotation.y) + moveVector.x * Math.sin(this.yaw.rotation.y + Math.PI/2)) * speed;
         this.velocity.z = (moveVector.y * -Math.cos(this.yaw.rotation.y) + moveVector.x * Math.cos(this.yaw.rotation.y + Math.PI/2)) * speed;
 
@@ -94,12 +94,15 @@ export class Player {
         let targetZTilt = 0;
 
         if (speedMagnitude > 0.1) {
-            this.bobTime += dt * 7.5;
-            this.camera.position.y = Math.sin(this.bobTime) * 0.1;
+            this.bobTime += dt * (input.sprinting ? 8 : 4);
+            this.camera.position.y = Math.sin(this.bobTime) * (input.sprinting ? 0.15 : 0.1);
 
             // Z-axis rotation (roll) for side-to-side movement
-            const SIDE_TILT_FACTOR = 0.075;
+            const SIDE_TILT_FACTOR = input.sprinting ? 0.1 : 0.075;
             targetZTilt = -moveVector.x * SIDE_TILT_FACTOR;
+             if(input.sprinting){
+                targetZTilt += (Math.sin(this.bobTime * 0.5) * 0.05);
+            }
 
             // X-axis rotation (pitch) for forward/backward movement
             targetXTilt = -moveVector.y * 0.05;
@@ -127,8 +130,8 @@ export class Player {
     }
 
     updateUI() {
-        document.getElementById('sanity-fill').style.width = this.sanity + "%";
-        document.getElementById('sanity-fill').style.background = this.sanity < 25 ? "red" : "#00ff00";
+        document.getElementById('sanity-fill').style.width = this.sanity + '%';
+        document.getElementById('sanity-fill').style.background = this.sanity < 25 ? 'red' : '#00ff00';
         document.getElementById('ui-water').innerText = this.water;
     }
 

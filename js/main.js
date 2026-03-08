@@ -11,12 +11,7 @@ class App {
         sessionStorage.clear();
         document.getElementById('overlay').style.display = 'none';
         
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen().catch(err => {
-                console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-            });
-        }
+        document.body.requestPointerLock();
 
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x000000);
@@ -28,6 +23,18 @@ class App {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(gfx === 'LOW' ? 0.6 : (window.devicePixelRatio || 1));
         document.body.appendChild(this.renderer.domElement);
+
+        this.renderer.domElement.addEventListener('click', () => {
+            if (!document.pointerLockElement) {
+                document.body.requestPointerLock();
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    });
+                }
+            }
+        });
 
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
