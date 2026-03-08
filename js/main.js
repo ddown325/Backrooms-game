@@ -89,13 +89,39 @@ class App {
         this.player.update(dt, this.input, this.world.activeWalls, this.world.activeItems);
 
         if (this.gfx === 'HIGH') {
-            const sanityEffect = 1 - (this.player.sanity / 100);
-            const canvasContainer = document.getElementById('canvas-container');
-            canvasContainer.style.filter = `blur(${sanityEffect * 1.5}px)`;
+            let sanityEffect = 0;
+            if (this.player.sanity < 25) {
+                sanityEffect = 1 - (this.player.sanity / 25);
+            }
 
-            const shakeIntensity = sanityEffect * 0.05;
-            this.camera.position.x += (Math.random() - 0.5) * shakeIntensity;
-            this.camera.position.y += (Math.random() - 0.5) * shakeIntensity;
+            const canvasContainer = document.getElementById('canvas-container');
+            canvasContainer.style.filter = `blur(${sanityEffect * 0.75}px)`;
+
+            const shakeIntensity = sanityEffect * 0.025;
+            if (shakeIntensity > 0) {
+                const oldCamPos = this.camera.position.clone();
+                this.camera.position.x += (Math.random() - 0.5) * shakeIntensity;
+                this.camera.position.y += (Math.random() - 0.5) * shakeIntensity;
+
+                this.camera.updateWorldMatrix(true, false);
+                const cameraWorldPos = new THREE.Vector3();
+                this.camera.getWorldPosition(cameraWorldPos);
+                const cameraBBox = new THREE.Box3().setFromCenterAndSize(cameraWorldPos, new THREE.Vector3(0.2, 0.2, 0.2));
+
+                let collision = false;
+                for (const wall of this.world.activeWalls) {
+                    if (!wall.parent || !wall.parent.visible || !wall.visible) continue;
+                    const wallBBox = new THREE.Box3().setFromObject(wall);
+                    if (cameraBBox.intersectsBox(wallBBox)) {
+                        collision = true;
+                        break;
+                    }
+                }
+
+                if (collision) {
+                    this.camera.position.copy(oldCamPos);
+                }
+            }
         }
 
         this.camera.updateMatrixWorld();
