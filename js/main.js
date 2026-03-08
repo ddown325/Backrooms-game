@@ -12,6 +12,14 @@ class App {
         overlay.style.display = 'flex';
 
         setTimeout(() => {
+            const isContinue = gfx === 'CONTINUE';
+            let finalGfx = gfx;
+
+            if (isContinue) {
+                const playerState = JSON.parse(localStorage.getItem('playerState'));
+                finalGfx = (playerState && playerState.gfx) ? playerState.gfx : 'MEDIUM';
+            }
+
             document.body.requestPointerLock();
 
             this.scene = new THREE.Scene();
@@ -20,14 +28,14 @@ class App {
 
             this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 60);
             
-            this.renderer = new THREE.WebGLRenderer({ antialias: gfx === 'HIGH', precision: "lowp" });
+            this.renderer = new THREE.WebGLRenderer({ antialias: finalGfx === 'HIGH', precision: "lowp" });
             this.renderer.setSize(window.innerWidth, window.innerHeight);
-            this.renderer.setPixelRatio(gfx === 'LOW' ? 0.3 : (gfx === 'MEDIUM' ? 0.7 : (window.devicePixelRatio || 1)));
+            this.renderer.setPixelRatio(finalGfx === 'LOW' ? 0.3 : (finalGfx === 'MEDIUM' ? 0.6 : (window.devicePixelRatio || 1)));
 
             const canvasContainer = document.getElementById('canvas-container');
             canvasContainer.appendChild(this.renderer.domElement);
 
-            this.gfx = gfx;
+            this.gfx = finalGfx;
             if (this.gfx === 'HIGH') {
                 document.getElementById('vhs-overlay').style.display = 'block';
             } else if (this.gfx === 'MEDIUM') {
@@ -49,9 +57,9 @@ class App {
             this.scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
             this.input = inputManager;
-            this.player = new Player(this.scene, this.camera);
+            this.player = new Player(this.scene, this.camera, this.gfx);
 
-            if (gfx === 'CONTINUE') {
+            if (isContinue) {
                 if (!this.player.loadState()) {
                     this.player.seed = Math.random();
                 }

@@ -4,7 +4,7 @@ import { EngineMath } from './utils.js';
 const SENSITIVITY = 0.002;
 
 export class Player {
-    constructor(scene, camera) {
+    constructor(scene, camera, gfx) {
         this.camera = camera;
         this.tilt = new THREE.Object3D(); // For procedural tilting effects
         this.tilt.add(camera);
@@ -20,6 +20,7 @@ export class Player {
         this.actionCooldown = 0;
         this.bobTime = 0;
         this.seed = null;
+        this.gfx = gfx;
 
         this.bbox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
     }
@@ -177,7 +178,8 @@ export class Player {
             pitch: this.pitch.rotation.x,
             seed: this.seed,
             sanity: this.sanity,
-            water: this.water
+            water: this.water,
+            gfx: this.gfx
         };
         localStorage.setItem('playerState', JSON.stringify(state));
     }
@@ -192,6 +194,7 @@ export class Player {
             this.seed = state.seed;
             this.sanity = state.sanity;
             this.water = state.water;
+            this.gfx = state.gfx;
             this.updateUI();
             return true;
         }
