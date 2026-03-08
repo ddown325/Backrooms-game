@@ -8,7 +8,6 @@ const inputManager = new InputManager();
 
 class App {
     static start(gfx) {
-        sessionStorage.clear();
         document.getElementById('overlay').style.display = 'none';
         
         document.body.requestPointerLock();
@@ -40,6 +39,16 @@ class App {
 
         this.input = inputManager;
         this.player = new Player(this.scene, this.camera);
+
+        if (gfx === 'CONTINUE') {
+            if (!this.player.loadState()) {
+                this.player.seed = Math.random();
+            }
+        } else {
+            sessionStorage.clear();
+            this.player.seed = Math.random();
+        }
+
         this.world = new World(this.scene);
         this.clock = new THREE.Clock();
         
@@ -51,6 +60,10 @@ class App {
 
         this.animate = this.animate.bind(this);
         requestAnimationFrame(this.animate);
+
+        setInterval(() => {
+            this.player.saveState();
+        }, 30);
     }
 
     static onWindowResize() {
@@ -190,17 +203,17 @@ if (startButtons.length > 0 && overlay) {
         if (gp) {
             const stickX = gp.axes[0];
             if (stickX < -0.5 && lastStickX >= -0.5) {
-                selection = 0;
+                selection = (selection - 1 + startButtons.length) % startButtons.length;
             } else if (stickX > 0.5 && lastStickX <= 0.5) {
-                selection = 1;
+                selection = (selection + 1) % startButtons.length;
             }
             lastStickX = stickX;
             
             const dpadX = (gp.buttons[14] && gp.buttons[14].pressed) ? -1 : ((gp.buttons[15] && gp.buttons[15].pressed) ? 1 : 0);
             if (dpadX === -1 && lastDPadX !== -1) {
-                selection = 0;
+                 selection = (selection - 1 + startButtons.length) % startButtons.length;
             } else if (dpadX === 1 && lastDPadX !== 1) {
-                selection = 1;
+                selection = (selection + 1) % startButtons.length;
             }
             lastDPadX = dpadX;
 

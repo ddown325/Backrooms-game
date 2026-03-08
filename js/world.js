@@ -112,8 +112,8 @@ export class World {
     }
 
     update(player, frustum) {
-        const pcx = Math.round(player.yaw.position.x / CONFIG.CHUNK_SIZE);
-        const pcz = Math.round(player.yaw.position.z / CONFIG.CHUNK_SIZE);
+        const pcx = Math.floor(player.yaw.position.x / CONFIG.CHUNK_SIZE);
+        const pcz = Math.floor(player.yaw.position.z / CONFIG.CHUNK_SIZE);
         
         for(let x=-CONFIG.RENDER_DIST; x<=CONFIG.RENDER_DIST; x++) {
             for(let z=-CONFIG.RENDER_DIST; z<=CONFIG.RENDER_DIST; z++) {

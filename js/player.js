@@ -19,6 +19,7 @@ export class Player {
         this.water = 0;
         this.actionCooldown = 0;
         this.bobTime = 0;
+        this.seed = null;
 
         this.bbox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
     }
@@ -164,5 +165,33 @@ export class Player {
                 }
             }
         }
+    }
+
+    saveState() {
+        const state = {
+            position: this.yaw.position.toArray(),
+            yaw: this.yaw.rotation.y,
+            pitch: this.pitch.rotation.x,
+            seed: this.seed,
+            sanity: this.sanity,
+            water: this.water
+        };
+        localStorage.setItem('playerState', JSON.stringify(state));
+    }
+
+    loadState() {
+        const stateJSON = localStorage.getItem('playerState');
+        if (stateJSON) {
+            const state = JSON.parse(stateJSON);
+            this.yaw.position.fromArray(state.position);
+            this.yaw.rotation.y = state.yaw;
+            this.pitch.rotation.x = state.pitch;
+            this.seed = state.seed;
+            this.sanity = state.sanity;
+            this.water = state.water;
+            this.updateUI();
+            return true;
+        }
+        return false;
     }
 }

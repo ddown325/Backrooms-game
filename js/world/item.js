@@ -1,8 +1,8 @@
 import { CONFIG } from '../config.js';
 
 export function createItem(chunkPosition, materials, seed) {
-    const cx = Math.round(chunkPosition.x / CONFIG.CHUNK_SIZE);
-    const cz = Math.round(chunkPosition.z / CONFIG.CHUNK_SIZE);
+    const cx = Math.floor(chunkPosition.x / CONFIG.CHUNK_SIZE);
+    const cz = Math.floor(chunkPosition.z / CONFIG.CHUNK_SIZE);
     const bottleId = `bottle_${cx}_${cz}`;
 
     if (sessionStorage.getItem(bottleId)) {
