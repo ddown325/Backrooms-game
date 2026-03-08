@@ -64,6 +64,9 @@ export class Player {
     update(dt, input, walls, items) {
         if (this.actionCooldown > 0) this.actionCooldown -= dt;
 
+        // Reset camera's local X position to prevent shake accumulation
+        this.camera.position.x = 0;
+
         const look = input.consumeLook();
         this.yaw.rotation.y -= look.x * SENSITIVITY;
         this.pitch.rotation.x -= look.y * SENSITIVITY;
