@@ -1,3 +1,4 @@
+
 import { CONFIG } from './config.js';
 import { InputManager } from './input.js';
 import { Player } from './player.js';
@@ -94,7 +95,7 @@ class App {
         }
         
         const controllerType = this.input.getControllerType();
-        this.pickupPrompt.style.display = 'none';
+        this.pickupPrompt.style..display = 'none';
 
         if (closestItem) {
             closestItem.children.forEach(c => c.material.color.set(0xffffff));
