@@ -8,12 +8,31 @@ export class InputManager {
         this.move = { fwd: 0, str: 0 };
         this.look = { x: 0, y: 0 };
         this.isMobile = 'ontouchstart' in document.documentElement;
+        this.mobileInput = null;
 
         this.pcInput = new PCInput(this);
         this.gamepadInput = new GamepadInput(this);
         if (this.isMobile) {
             this.mobileInput = new MobileInput(this);
         }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 't' && e.target.tagName.toLowerCase() !== 'input' && e.target.tagName.toLowerCase() !== 'textarea') {
+                this.isMobile = !this.isMobile;
+                const mobileControls = document.getElementById('mobile-controls');
+                if (this.isMobile) {
+                    if (!this.mobileInput) {
+                        this.mobileInput = new MobileInput(this);
+                    }
+                    mobileControls.style.display = 'flex';
+                    if (document.pointerLockElement) {
+                        document.exitPointerLock();
+                    }
+                } else {
+                    mobileControls.style.display = 'none';
+                }
+            }
+        });
     }
 
     getControllerType() {
@@ -29,7 +48,7 @@ export class InputManager {
             return this.gamepadInput.isAction();
         }
         if (controller === 'mobile') {
-            return this.mobileInput.isAction();
+            return this.mobileInput && this.mobileInput.isAction();
         }
         return this.pcInput.isAction();
     }

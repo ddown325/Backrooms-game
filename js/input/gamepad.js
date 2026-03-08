@@ -39,7 +39,7 @@ export class GamepadInput {
         this.manager.move.str = Math.abs(lsX) > DEADZONE ? lsX : 0;
         this.manager.move.fwd = Math.abs(lsY) > DEADZONE ? -lsY : 0;
         
-        this.manager.look.x += Math.abs(rsX) > DEADZONE ? rsX * 30 : 0;
-        this.manager.look.y += Math.abs(rsY) > DEADZONE ? rsY * 30 : 0;
+        this.manager.look.x += Math.abs(rsX) > DEADZONE ? rsX * 45 : 0;
+        this.manager.look.y += Math.abs(rsY) > DEADZONE ? rsY * 45 : 0;
     }
 }

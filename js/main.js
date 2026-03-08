@@ -95,12 +95,18 @@ class App {
         }
         
         const controllerType = this.input.getControllerType();
-        this.pickupPrompt.style..display = 'none';
+        this.pickupPrompt.style.display = 'none';
+        this.mobileActionButton.style.display = 'none';
+
+        if (controllerType === 'mobile') {
+            this.mobileActionButton.style.display = 'flex';
+        }
 
         if (closestItem) {
             closestItem.children.forEach(c => c.material.color.set(0xffffff));
             if (controllerType === 'mobile') {
                 this.mobileActionButton.innerText = 'PICKUP';
+                this.mobileActionButton.classList.add('pickup');
             } else {
                 const screenPos = new THREE.Vector3();
                 closestItem.getWorldPosition(screenPos);
@@ -118,6 +124,7 @@ class App {
         } else {
             if (controllerType === 'mobile') {
                 this.mobileActionButton.innerText = 'DRINK';
+                this.mobileActionButton.classList.remove('pickup');
             }
         }
 

@@ -22,64 +22,59 @@ export class MobileInput {
 
                 for (const t of e.changedTouches) {
                     if (e.type === 'touchstart') {
-                        if (t.clientX < window.innerWidth / 2) {
+                        if (this.inside(t, joyBase)) {
                             if (this.touch.joyId < 0) {
                                 this.touch.joyId = t.identifier;
-                                joyBase.style.display = 'block';
-                                joyBase.style.left = `${t.clientX - 50}px`;
-                                joyBase.style.top = `${t.clientY - 50}px`;
                                 this.touch.joyX = t.clientX;
                                 this.touch.joyY = t.clientY;
                             }
+                        } else if (this.inside(t, btnAction)) {
+                            if (this.touch.actionId < 0) {
+                                this.touch.actionId = t.identifier;
+                                btnAction.classList.add('active');
+                            }
                         } else {
-                            if (this.inside(t, btnAction)) {
-                                if (this.touch.actionId < 0) {
-                                    this.touch.actionId = t.identifier;
-                                    btnAction.classList.add('active');
-                                }
-                            } else {
-                                if (this.touch.lookId < 0) {
-                                    this.touch.lookId = t.identifier;
-                                    this.touch.lookX = t.clientX;
-                                    this.touch.lookY = t.clientY;
-                                }
+                            if (this.touch.lookId < 0) {
+                                this.touch.lookId = t.identifier;
+                                this.touch.lookX = t.clientX;
+                                this.touch.lookY = t.clientY;
                             }
                         }
                     } else if (e.type === 'touchmove') {
                         if (t.identifier === this.touch.joyId) {
-                            const dx = t.clientX - this.touch.joyX;
-                            const dy = t.clientY - this.touch.joyY;
+                            const rect = joyBase.getBoundingClientRect();
+                            const dx = t.clientX - (rect.left + rect.width / 2);
+                            const dy = t.clientY - (rect.top + rect.height / 2);
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             const angle = Math.atan2(dy, dx);
                             const maxDist = 40;
 
-                            let knobX = t.clientX - this.touch.joyX;
-                            let knobY = t.clientY - this.touch.joyY;
+                            let knobX = dx;
+                            let knobY = dy;
                             if (dist > maxDist) {
                                 knobX = Math.cos(angle) * maxDist;
                                 knobY = Math.sin(angle) * maxDist;
                             }
-                            joyKnob.style.left = `${knobX}px`;
-                            joyKnob.style.top = `${knobY}px`;
+                            joyKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
 
                             const power = Math.min(dist, maxDist) / maxDist;
-                            this.manager.move.fwd = -Math.sin(angle) * power;
-                            this.manager.move.str = Math.cos(angle) * power;
+                            this.manager.move.fwd = Math.sin(angle) * power;
+                            this.manager.move.str = -Math.cos(angle) * power;
                         } else if (t.identifier === this.touch.lookId) {
                             const dx = t.clientX - this.touch.lookX;
                             const dy = t.clientY - this.touch.lookY;
                             this.touch.lookX = t.clientX;
                             this.touch.lookY = t.clientY;
                             
-                            this.manager.look.x += dx * 2;
-                            this.manager.look.y += dy * 2;
+                            this.manager.look.x += dx * 4;
+                            this.manager.look.y += dy * 4;
                         }
                     } else if (e.type === 'touchend' || e.type === 'touchcancel') {
                         if (t.identifier === this.touch.joyId) {
                             this.touch.joyId = -1;
                             this.manager.move.fwd = 0;
                             this.manager.move.str = 0;
-                            joyBase.style.display = 'none';
+                            joyKnob.style.transform = 'translate(0, 0)';
                         } else if (t.identifier === this.touch.lookId) {
                             this.touch.lookId = -1;
                         } else if (t.identifier === this.touch.actionId) {
