@@ -204,6 +204,8 @@ if (startButtons.length > 0 && overlay) {
             const actionButtonPressed = gp.buttons[0] && gp.buttons[0].pressed && !(prevButtonStates[0]);
             if (actionButtonPressed) {
                 startButtons[selection].click();
+                if(menuLoopId) cancelAnimationFrame(menuLoopId);
+                return;
             }
 
             for (let i = 0; i < gp.buttons.length; i++) {

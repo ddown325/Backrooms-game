@@ -28,12 +28,16 @@ export class MobileInput {
                                 this.touch.joyX = t.clientX;
                                 this.touch.joyY = t.clientY;
                             }
-                        } else if (this.inside(t, btnAction)) {
+                        }
+                        
+                        if (this.inside(t, btnAction)) {
                             if (this.touch.actionId < 0) {
                                 this.touch.actionId = t.identifier;
                                 btnAction.classList.add('active');
                             }
-                        } else {
+                        } 
+                        
+                        if(this.touch.joyId !== t.identifier && this.touch.actionId !== t.identifier) {
                             if (this.touch.lookId < 0) {
                                 this.touch.lookId = t.identifier;
                                 this.touch.lookX = t.clientX;
@@ -60,7 +64,9 @@ export class MobileInput {
                             const power = Math.min(dist, maxDist) / maxDist;
                             this.manager.move.fwd = Math.sin(angle) * power;
                             this.manager.move.str = -Math.cos(angle) * power;
-                        } else if (t.identifier === this.touch.lookId) {
+                        }
+                        
+                        if (t.identifier === this.touch.lookId) {
                             const dx = t.clientX - this.touch.lookX;
                             const dy = t.clientY - this.touch.lookY;
                             this.touch.lookX = t.clientX;
@@ -75,9 +81,13 @@ export class MobileInput {
                             this.manager.move.fwd = 0;
                             this.manager.move.str = 0;
                             joyKnob.style.transform = 'translate(0, 0)';
-                        } else if (t.identifier === this.touch.lookId) {
+                        }
+                        
+                        if (t.identifier === this.touch.lookId) {
                             this.touch.lookId = -1;
-                        } else if (t.identifier === this.touch.actionId) {
+                        }
+                        
+                        if (t.identifier === this.touch.actionId) {
                             this.touch.actionId = -1;
                             btnAction.classList.remove('active');
                         }
