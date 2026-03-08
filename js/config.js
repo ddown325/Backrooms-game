@@ -1,9 +1,9 @@
 export const CONFIG = {
     CHUNK_SIZE: 16,
     RENDER_DIST: 2,
-    PLAYER_HEIGHT: 1.7,
-    WALK_SPEED: 5, 
-    RUN_SPEED: 10,
+    PLAYER_HEIGHT: 2.125,
+    WALK_SPEED: 7.5, 
+    RUN_SPEED: 15,
     SANITY_DRAIN: 0.8,
     PICKUP_RADIUS: 3.6,
     WALL_THICKNESS: 0.6,

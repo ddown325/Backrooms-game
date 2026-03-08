@@ -12,6 +12,13 @@ class App {
     static start(gfx) {
         document.getElementById('overlay').style.display = 'none';
         
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => {
+                console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        }
+
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x0a0a00);
         this.scene.fog = new THREE.Fog(0x0a0a00, 1, CONFIG.CHUNK_SIZE * 1.8);
@@ -22,6 +29,8 @@ class App {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(gfx === 'LOW' ? 0.6 : (window.devicePixelRatio || 1));
         document.body.appendChild(this.renderer.domElement);
+
+        window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
         this.scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
@@ -37,6 +46,14 @@ class App {
 
         this.animate = this.animate.bind(this);
         requestAnimationFrame(this.animate);
+    }
+
+    static onWindowResize() {
+        if (this.camera && this.renderer) {
+            this.camera.aspect = window.innerWidth / window.innerHeight;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+        }
     }
 
     static animate() {
@@ -113,6 +130,14 @@ if (startButtons.length > 0 && overlay) {
             }
         });
     };
+    
+    const resetMenuSelection = () => {
+        startButtons.forEach(btn => {
+            btn.style.backgroundColor = '#ffffaa';
+            btn.style.transform = 'translateY(0px)';
+            btn.style.boxShadow = '0 4px #888855';
+        });
+    };
 
     let lastStickX = 0;
     let lastDPadX = 0;
@@ -125,44 +150,45 @@ if (startButtons.length > 0 && overlay) {
             return;
         }
 
+        if (inputManager.getControllerType() !== 'gamepad') {
+            resetMenuSelection();
+            requestAnimationFrame(menuLoop);
+            return;
+        }
+        
+        updateMenuSelection();
         inputManager.update();
 
-        if (inputManager.getControllerType() === 'gamepad' && inputManager.gamepad !== null) {
-            const gp = navigator.getGamepads()[inputManager.gamepad];
-            if (gp) {
-                const stickX = gp.axes[0];
-                if (stickX < -0.5 && lastStickX >= -0.5) {
-                    selection = 0;
-                    updateMenuSelection();
-                } else if (stickX > 0.5 && lastStickX <= 0.5) {
-                    selection = 1;
-                    updateMenuSelection();
-                }
-                lastStickX = stickX;
-                
-                const dpadX = (gp.buttons[14] && gp.buttons[14].pressed) ? -1 : ((gp.buttons[15] && gp.buttons[15].pressed) ? 1 : 0);
-                if (dpadX === -1 && lastDPadX !== -1) {
-                    selection = 0;
-                    updateMenuSelection();
-                } else if (dpadX === 1 && lastDPadX !== 1) {
-                    selection = 1;
-                    updateMenuSelection();
-                }
-                lastDPadX = dpadX;
+        const gp = navigator.getGamepads()[inputManager.gamepad];
+        if (gp) {
+            const stickX = gp.axes[0];
+            if (stickX < -0.5 && lastStickX >= -0.5) {
+                selection = 0;
+            } else if (stickX > 0.5 && lastStickX <= 0.5) {
+                selection = 1;
+            }
+            lastStickX = stickX;
+            
+            const dpadX = (gp.buttons[14] && gp.buttons[14].pressed) ? -1 : ((gp.buttons[15] && gp.buttons[15].pressed) ? 1 : 0);
+            if (dpadX === -1 && lastDPadX !== -1) {
+                selection = 0;
+            } else if (dpadX === 1 && lastDPadX !== 1) {
+                selection = 1;
+            }
+            lastDPadX = dpadX;
 
-                const actionButtonPressed = gp.buttons[0] && gp.buttons[0].pressed && !(prevButtonStates[0]);
-                if (actionButtonPressed) {
-                    startButtons[selection].click();
-                }
+            const actionButtonPressed = gp.buttons[0] && gp.buttons[0].pressed && !(prevButtonStates[0]);
+            if (actionButtonPressed) {
+                startButtons[selection].click();
+            }
 
-                for (let i = 0; i < gp.buttons.length; i++) {
-                    prevButtonStates[i] = gp.buttons[i] ? gp.buttons[i].pressed : false;
-                }
+            for (let i = 0; i < gp.buttons.length; i++) {
+                prevButtonStates[i] = gp.buttons[i] ? gp.buttons[i].pressed : false;
             }
         }
+        
         menuLoopId = requestAnimationFrame(menuLoop);
     };
 
-    updateMenuSelection();
     menuLoop();
 }

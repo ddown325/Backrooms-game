@@ -32,28 +32,31 @@ export class InputManager {
     }
 
     getControllerType() {
-        if (this.gamepad !== null) return 'gamepad';
+        if (this.gamepad !== null) {
+            const gp = navigator.getGamepads()[this.gamepad];
+            if (gp && gp.connected) {
+                return 'gamepad';
+            }
+        }
         if (this.isMobile) return 'mobile';
         return 'keyboard';
     }
 
     update() {
-        if (this.gamepad !== null) {
+        if (this.getControllerType() === 'gamepad') {
             const gp = navigator.getGamepads()[this.gamepad];
+            if (!gp) return;
             
-            // Movement (left stick)
             const lStickX = gp.axes[0];
             const lStickY = gp.axes[1];
             this.move.str = Math.abs(lStickX) > 0.1 ? lStickX : 0;
             this.move.fwd = Math.abs(lStickY) > 0.1 ? -lStickY : 0;
 
-            // Look (right stick)
             const rStickX = gp.axes[2];
             const rStickY = gp.axes[3];
             this.look.x += Math.abs(rStickX) > 0.15 ? rStickX * 25 : 0;
             this.look.y += Math.abs(rStickY) > 0.15 ? rStickY * 25 : 0;
 
-            // Actions (A button)
             if (gp.buttons[0].pressed) {
                 this.pickup = true;
                 this.drink = true;
@@ -66,14 +69,8 @@ export class InputManager {
             document.getElementById('mobile-controls').style.display = 'flex';
             
             window.addEventListener('pointerdown', (e) => {
-                if (e.target.id === 'btn-drink') {
-                    this.drink = true;
-                    return;
-                }
-                if (e.target.id === 'btn-pickup') {
-                    this.pickup = true;
-                    return;
-                }
+                if (e.target.id === 'btn-drink') { this.drink = true; return; }
+                if (e.target.id === 'btn-pickup') { this.pickup = true; return; }
 
                 if (e.clientX < window.innerWidth / 2 && this.pointers.moveId === null) {
                     this.pointers.moveId = e.pointerId;
@@ -81,7 +78,8 @@ export class InputManager {
                     this.joyBase.style.display = 'block';
                     this.joyBase.style.left = `${e.clientX - 60}px`;
                     this.joyBase.style.top = `${e.clientY - 60}px`;
-                } else if (e.clientX >= window.innerWidth / 2 && this.pointers.lookId === null) {
+                }
+                if (e.clientX >= window.innerWidth / 2 && this.pointers.lookId === null) {
                     this.pointers.lookId = e.pointerId;
                     this.pointers.lookLast = { x: e.clientX, y: e.clientY };
                 }
@@ -101,8 +99,9 @@ export class InputManager {
                     this.move.str = fx / 60;
                     this.move.fwd = -fy / 60;
                 } else if (e.pointerId === this.pointers.lookId) {
-                    this.look.x += e.clientX - this.pointers.lookLast.x;
-                    this.look.y += e.clientY - this.pointers.lookLast.y;
+                    const MOBILE_SENSITIVITY = 2.5;
+                    this.look.x += (e.clientX - this.pointers.lookLast.x) * MOBILE_SENSITIVITY;
+                    this.look.y += (e.clientY - this.pointers.lookLast.y) * MOBILE_SENSITIVITY;
                     this.pointers.lookLast = { x: e.clientX, y: e.clientY };
                 }
             });

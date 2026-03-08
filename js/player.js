@@ -72,7 +72,6 @@ export class Player {
 
         const speed = CONFIG.WALK_SPEED;
         
-        // Corrected forward/backward movement
         this.velocity.x = (fwd * -Math.sin(this.yaw.rotation.y) + str * Math.sin(this.yaw.rotation.y + Math.PI/2)) * speed;
         this.velocity.z = (fwd * -Math.cos(this.yaw.rotation.y) + str * Math.cos(this.yaw.rotation.y + Math.PI/2)) * speed;
 
@@ -83,13 +82,12 @@ export class Player {
         // Head-bob
         const speedMagnitude = Math.sqrt(this.velocity.x*this.velocity.x + this.velocity.z*this.velocity.z);
         if (speedMagnitude > 0.1) {
-            this.bobTime += dt * 12.5;
+            this.bobTime += dt * 7.5;
             this.camera.position.y = Math.sin(this.bobTime) * 0.1;
         } else {
-            if (this.camera.position.y !== 0) {
-                this.camera.position.y *= 0.9;
-                if (Math.abs(this.camera.position.y) < 0.001) this.camera.position.y = 0;
-            }
+            this.bobTime = 0;
+            this.camera.position.y *= 0.9; // Smoothly return to center
+            if (Math.abs(this.camera.position.y) < 0.001) this.camera.position.y = 0;
         }
         this.yaw.position.y = CONFIG.PLAYER_HEIGHT + this.camera.position.y;
 
