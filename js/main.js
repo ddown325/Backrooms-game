@@ -150,28 +150,8 @@ class App {
 
             const shakeIntensity = sanityEffect * 0.025;
             if (shakeIntensity > 0) {
-                const oldCamPos = this.camera.position.clone();
                 this.camera.position.x += (Math.random() - 0.5) * shakeIntensity;
                 this.camera.position.y += (Math.random() - 0.5) * shakeIntensity;
-
-                this.camera.updateWorldMatrix(true, false);
-                const cameraWorldPos = new THREE.Vector3();
-                this.camera.getWorldPosition(cameraWorldPos);
-                const cameraBBox = new THREE.Box3().setFromCenterAndSize(cameraWorldPos, new THREE.Vector3(0.2, 0.2, 0.2));
-
-                let collision = false;
-                for (const wall of this.world.activeWalls) {
-                    if (!wall.parent || !wall.parent.visible || !wall.visible) continue;
-                    const wallBBox = new THREE.Box3().setFromObject(wall);
-                    if (cameraBBox.intersectsBox(wallBBox)) {
-                        collision = true;
-                        break;
-                    }
-                }
-
-                if (collision) {
-                    this.camera.position.copy(oldCamPos);
-                }
             }
         }
 
