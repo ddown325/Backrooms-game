@@ -95,7 +95,6 @@ export class MobileInput {
         document.addEventListener('touchmove', touchHandler, { passive: false });
         document.addEventListener('touchend', touchHandler, { passive: false });
         document.addEventListener('touchcancel', touchHandler, { passive: false });
-        }
     }
 
     inside(touch, element) {
