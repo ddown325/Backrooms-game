@@ -72,11 +72,12 @@ class App {
 
             if (isContinue) {
                 if (!this.player.loadState()) {
-                    this.player.seed = Math.random();
+                    window.location.reload();
+                    return;
                 }
             } else {
                 sessionStorage.clear();
-                this.player.seed = Math.random();
+                this.player.seed = Math.random() * 10000000000;
             }
 
             this.world = new World(this.scene);

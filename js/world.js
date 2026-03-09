@@ -5,6 +5,7 @@ import { createFloor } from './world/floor.js';
 import { createCeiling } from './world/ceiling.js';
 import { createWalls } from './world/wall.js';
 import { createItem } from './world/item.js';
+import { NoiseGenerator } from './noise.js';
 
 export class World {
     constructor(scene) {
@@ -12,6 +13,8 @@ export class World {
         this.chunks = new Map();
         this.activeWalls = [];
         this.activeItems = [];
+        this.noiseGens = {};
+        this.biomeParams = {};
 
         this.floorGroup = new THREE.Group();
         this.scene.add(this.floorGroup);
@@ -49,10 +52,61 @@ export class World {
         this.blueColor = new THREE.Color(0.26, 0.26, 0.6);
     }
 
-    getBiome(cx, cz) {
-        const n = Math.sin(cx * 0.2) * Math.cos(cz * 0.2);
-        if (n < -0.7) return { name: "BLUE", t: 'B', fog: 0x000000, drain: -0.4 };
-        if (n > 0.6) return { name: "RED", t: 'R', fog: 0x000000, drain: -2.0 };
+    getNoiseGenerator(seed) {
+        if (!this.noiseGens[seed]) {
+            this.noiseGens[seed] = new NoiseGenerator(seed);
+        }
+        return this.noiseGens[seed];
+    }
+
+    getBiomeParams(seed) {
+        if (!this.biomeParams[seed]) {
+            const createPrng = (s) => {
+                let seed = s;
+                return () => {
+                    seed = (seed * 9301 + 49297) % 233280;
+                    return seed / 233280;
+                };
+            };
+            const prng = createPrng(seed);
+
+            // Control biome size. Freq between 1/62 and 1/12. 
+            const minFreq = 1 / 62;
+            const maxFreq = 1 / 12;
+            const freq1 = minFreq + prng() * (maxFreq - minFreq);
+            const freq2 = freq1 * 2 + prng() * (freq1 * 2);
+
+            const amp1 = 0.7 + prng() * 0.2;
+            const amp2 = 1.0 - amp1;
+
+            // Widen the gap to ensure Red and Blue are far apart
+            const blueThreshold = -0.5 - prng() * 0.1; // Range [-0.6, -0.5]
+            const redThreshold = 0.5 + prng() * 0.1;   // Range [ 0.5,  0.6]
+
+            this.biomeParams[seed] = { freq1, freq2, amp1, amp2, blueThreshold, redThreshold };
+        }
+        return this.biomeParams[seed];
+    }
+
+    getBiome(cx, cz, seed) {
+        const noiseGen = this.getNoiseGenerator(seed);
+        const params = this.getBiomeParams(seed);
+        
+        let n = 0;
+        n += noiseGen.getNoise(cx * params.freq1, cz * params.freq1) * params.amp1;
+        n += noiseGen.getNoise(cx * params.freq2, cz * params.freq2) * params.amp2;
+        n /= (params.amp1 + params.amp2);
+
+        // Enforce safe zone around origin (0,0)
+        const distFromOrigin = Math.sqrt(cx*cx + cz*cz);
+        const safeZoneRadius = 40;
+        if (distFromOrigin < safeZoneRadius) {
+            const blendFactor = (distFromOrigin / safeZoneRadius);
+            n *= Math.pow(blendFactor, 2); // Smoothly blend noise to 0 (Yellow)
+        }
+
+        if (n < params.blueThreshold) return { name: "BLUE", t: 'B', fog: 0x000000, drain: -0.4 };
+        if (n > params.redThreshold) return { name: "RED", t: 'R', fog: 0x000000, drain: -2.0 };
         return { name: "YELLOW", t: 'Y', fog: 0x000000, drain: -0.6 };
     }
 
@@ -65,8 +119,8 @@ export class World {
             new THREE.Vector3(2, 4, 2) // Safety box around the player
         ) : null;
 
-        const b = this.getBiome(cx, cz);
-        const seed = EngineMath.getHash(cx, cz);
+        const b = this.getBiome(cx, cz, player ? player.seed : 0);
+        const seed = EngineMath.getHash(cx, cz, player ? player.seed : 0);
         
         const chunkPosition = new THREE.Vector3(cx * CONFIG.CHUNK_SIZE, 0, cz * CONFIG.CHUNK_SIZE);
 
@@ -135,8 +189,7 @@ export class World {
         
         for(let x=-CONFIG.RENDER_DIST; x<=CONFIG.RENDER_DIST; x++) {
             for(let z=-CONFIG.RENDER_DIST; z<=CONFIG.RENDER_DIST; z++) {
-                const isPlayerChunk = x === 0 && z === 0;
-                this.buildChunk(pcx + x, pcz + z, isPlayerChunk ? player : null);
+                this.buildChunk(pcx + x, pcz + z, player);
             }
         }
 
@@ -176,55 +229,44 @@ export class World {
             }
         });
         
-        const biomeInfo = this.getBiome(pcx, pcz);
+        const biomeInfo = this.getBiome(pcx, pcz, player.seed);
         let biomeColor = this.baseColor.clone();
+        const params = this.getBiomeParams(player.seed);
 
         if (biomeInfo.name === "RED") {
             biomeColor.copy(this.redColor);
         } else if (biomeInfo.name === "BLUE") {
             biomeColor.copy(this.blueColor);
-        } else { // Current chunk is YELLOW
-            let closestRedDist = Infinity;
-            let closestBlueDist = Infinity;
+        } else { // Current chunk is YELLOW, so we apply smooth fading
+            const noiseGen = this.getNoiseGenerator(player.seed);
+            const playerX = player.yaw.position.x / CONFIG.CHUNK_SIZE;
+            const playerZ = player.yaw.position.z / CONFIG.CHUNK_SIZE;
 
-            for (let x = -1; x <= 1; x++) {
-                for (let z = -1; z <= 1; z++) {
-                    if (x === 0 && z === 0) continue;
-                    const neighborBiome = this.getBiome(pcx + x, pcz + z);
-                    if (neighborBiome.name === "RED" || neighborBiome.name === "BLUE") {
-                        const neighborCenterX = (pcx + x) * CONFIG.CHUNK_SIZE;
-                        const neighborCenterZ = (pcz + z) * CONFIG.CHUNK_SIZE;
-                        const dist = player.yaw.position.distanceTo(new THREE.Vector3(neighborCenterX, 0, neighborCenterZ));
+            let n = 0;
+            n += noiseGen.getNoise(playerX * params.freq1, playerZ * params.freq1) * params.amp1;
+            n += noiseGen.getNoise(playerX * params.freq2, playerZ * params.freq2) * params.amp2;
+            n /= (params.amp1 + params.amp2);
 
-                        if (neighborBiome.name === "RED") {
-                            if (dist < closestRedDist) closestRedDist = dist;
-                        } else { // BLUE
-                            if (dist < closestBlueDist) closestBlueDist = dist;
-                        }
-                    }
-                }
+            // Apply same safe zone logic for the player's position
+            const distFromOrigin = Math.sqrt(playerX*playerX + playerZ*playerZ);
+            const safeZoneRadius = 40;
+            if (distFromOrigin < safeZoneRadius) {
+                const blendFactor = (distFromOrigin / safeZoneRadius);
+                n *= Math.pow(blendFactor, 2);
             }
+
+            const transitionZoneSize = (params.redThreshold - params.blueThreshold) * 0.4; 
+            const blueTransitionEnd = params.blueThreshold + transitionZoneSize;
+            const redTransitionStart = params.redThreshold - transitionZoneSize;
             
-            const minFadeDist = CONFIG.CHUNK_SIZE * 0.5; 
-            const maxFadeDist = CONFIG.CHUNK_SIZE * 1.5;
-
-            let lerpFactor = 0;
-            let targetColor = null;
-
-            if (closestRedDist < closestBlueDist && closestRedDist < maxFadeDist) {
-                targetColor = this.redColor;
-                let t = (maxFadeDist - closestRedDist) / (maxFadeDist - minFadeDist);
-                t = Math.max(0, Math.min(1, t));
-                lerpFactor = t * t * (3.0 - 2.0 * t); // Smoothstep
-            } else if (closestBlueDist < maxFadeDist) {
-                targetColor = this.blueColor;
-                let t = (maxFadeDist - closestBlueDist) / (maxFadeDist - minFadeDist);
-                t = Math.max(0, Math.min(1, t));
-                lerpFactor = t * t * (3.0 - 2.0 * t); // Smoothstep
-            }
-
-            if (targetColor) {
-                biomeColor.lerp(targetColor, lerpFactor);
+            if (n < blueTransitionEnd) { // In blue-yellow transition
+                const t = (n - params.blueThreshold) / transitionZoneSize;
+                const smooth_t = 1.0 - (t * t * (3.0 - 2.0 * t)); // Inverse Smoothstep
+                biomeColor.lerp(this.blueColor, smooth_t * 0.75); // Fade up to 75% to blue
+            } else if (n > redTransitionStart) { // In red-yellow transition
+                const t = (n - redTransitionStart) / transitionZoneSize;
+                const smooth_t = t * t * (3.0 - 2.0 * t); // Smoothstep
+                biomeColor.lerp(this.redColor, smooth_t * 0.75); // Fade up to 75% to red
             }
         }
 
