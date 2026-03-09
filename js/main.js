@@ -20,7 +20,16 @@ class App {
                 finalGfx = (playerState && playerState.gfx) ? playerState.gfx : 'MEDIUM';
             }
 
-            document.body.requestPointerLock();
+            if (inputManager.isMobile) {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    });
+                }
+            } else {
+                document.body.requestPointerLock();
+            }
 
             this.scene = new THREE.Scene();
             this.scene.background = new THREE.Color(0x000000);
@@ -43,7 +52,9 @@ class App {
             }
 
             this.renderer.domElement.addEventListener('click', () => {
-                document.body.requestPointerLock();
+                if (!inputManager.isMobile) {
+                    document.body.requestPointerLock();
+                }
                 const elem = document.documentElement;
                 if (elem.requestFullscreen) {
                     elem.requestFullscreen().catch(err => {
