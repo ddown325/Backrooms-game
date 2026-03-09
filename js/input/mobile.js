@@ -21,23 +21,26 @@ export class MobileInput {
                 for (const t of e.changedTouches) {
                     if (e.type === 'touchstart') {
                         if (this.inside(t, joyBase)) {
+                            e.preventDefault();
                             if (this.touch.joyId < 0) {
                                 this.touch.joyId = t.identifier;
                                 this.touch.joyX = t.clientX;
                                 this.touch.joyY = t.clientY;
                             }
                         } else if (this.inside(t, btnAction)) {
+                            e.preventDefault();
                             btnAction.classList.add('active');
                         } else if (btnSprint && this.inside(t, btnSprint)) {
+                            e.preventDefault();
                             btnSprint.classList.toggle('active');
                         } else if (this.touch.lookId < 0) {
                             this.touch.lookId = t.identifier;
                             this.touch.lookX = t.clientX;
                             this.touch.lookY = t.clientY;
-                            
                         }
                     } else if (e.type === 'touchmove') {
                         if (t.identifier === this.touch.joyId) {
+                            e.preventDefault();
                             const rect = joyBase.getBoundingClientRect();
                             const dx = t.clientX - (rect.left + rect.width / 2);
                             const dy = t.clientY - (rect.top + rect.height / 2);
@@ -58,7 +61,8 @@ export class MobileInput {
                             this.manager.move.str = Math.cos(angle) * power;
                         }
                         
-                        if (t.identifier === this.touch.lookId) {                            
+                        if (t.identifier === this.touch.lookId) {
+                            e.preventDefault();
                             const dx = t.clientX - this.touch.lookX;
                             const dy = t.clientY - this.touch.lookY;
                             this.touch.lookX = t.clientX;
