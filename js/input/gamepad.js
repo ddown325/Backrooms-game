@@ -46,8 +46,7 @@ export class GamepadInput {
 
         this.actionPressed = (gp.buttons[0] && gp.buttons[0].pressed && !this.prevButtonStates[0]);
 
-        const startButtonPressed = gp.buttons[9] && gp.buttons[9].pressed && !this.prevButtonStates[9];
-        if (startButtonPressed) {
+        if (this.actionPressed) {
             document.body.requestPointerLock();
             const elem = document.documentElement;
             if (elem.requestFullscreen) {
