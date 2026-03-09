@@ -88,7 +88,17 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #111; color: #ffffaa; display: flex; 
             flex-direction: column; align-items: center; justify-content: center;
-            z-index: 1000; text-align: center;
+            z-index: 1000; text-align: center; overflow-y: auto; padding: 20px;
+        }
+
+        .overlay-title {
+            letter-spacing: 5px;
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .overlay-subtitle {
+            font-size: 2em;
         }
 
         #overlay.insane {
@@ -106,7 +116,19 @@
             margin: 10px; cursor: pointer; border-radius: 5px; box-shadow: 0 4px #888855;
         }
         .btn-start:active { background: #cccc77; transform: translateY(2px); box-shadow: 0 2px #888855; }
-        #credit { position: absolute; bottom: 20px; font-size: 0.9rem; opacity: 0.6; }
+
+        #credit {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            font-size: 0.9rem;
+            color: #ffffaa;
+            opacity: 0.6;
+            pointer-events: none;
+            z-index: 1001;
+        }
         
         #hud { position: absolute; top: 20px; left: 20px; color: #ffffaa; z-index: 10; pointer-events: none; text-shadow: 2px 2px 0px #000; line-height: 1.6; }
         .bar-bg { width: 150px; height: 12px; background: rgba(0,0,0,0.6); border: 2px solid #ffffaa; margin-top: 4px; }
@@ -165,4 +187,47 @@
 
         .insane-text.visible {
             opacity: 1;
+        }
+
+        /* Media Queries for Responsive UI */
+
+        @media (min-width: 1024px) {
+            .overlay-title {
+                font-size: 3rem;
+            }
+            .overlay-subtitle {
+                font-size: 2em;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .overlay-title {
+                font-size: 2rem;
+            }
+
+            .overlay-subtitle {
+                font-size: 1.5em;
+            }
+
+            .btn-start {
+                padding: 10px 20px;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .overlay-title {
+                font-size: 1.5rem;
+            }
+
+            .overlay-subtitle {
+                font-size: 1.2em;
+            }
+
+            .btn-start {
+                padding: 8px 15px;
+                font-size: 0.9rem;
+                display: block;
+                margin: 10px auto;
+            }
         }

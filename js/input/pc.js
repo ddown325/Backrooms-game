@@ -15,7 +15,7 @@ export class PCInput {
     }
 
     isAction() {
-        return this.keys['e'] || this.keys['f'];
+        return this.keys['e'];
     }
 
     isSprinting() {

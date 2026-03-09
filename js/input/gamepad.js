@@ -26,7 +26,7 @@ export class GamepadInput {
     isAction() {
         if (this.gamepad === -1) return false;
         const gp = navigator.getGamepads()[this.gamepad];
-        return gp && (gp.buttons[0].pressed || gp.buttons[2].pressed);
+        return gp && gp.buttons[0].pressed;
     }
 
     isSprinting() {
@@ -44,7 +44,7 @@ export class GamepadInput {
         const gp = navigator.getGamepads()[this.gamepad];
         if (!gp) return;
 
-        this.actionPressed = (gp.buttons[0] && gp.buttons[0].pressed && !this.prevButtonStates[0]) || (gp.buttons[2] && gp.buttons[2].pressed && !this.prevButtonStates[2]);
+        this.actionPressed = (gp.buttons[0] && gp.buttons[0].pressed && !this.prevButtonStates[0]);
 
         const startButtonPressed = gp.buttons[9] && gp.buttons[9].pressed && !this.prevButtonStates[9];
         if (startButtonPressed) {

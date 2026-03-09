@@ -12,16 +12,25 @@
     <div id="vhs-overlay"></div>
     <div id="shadow-overlay"></div>
     <div id="overlay">
-        <h1 style="letter-spacing: 5px; font-size: 3rem; margin-bottom: 20px;">THE BACKROOMS</h1>
-        <p style="font-size: 2em;">PROCEDURAL GENERATION ENGINE v4.0<br>beta 0.05</p>
-        <div>
-            <button class="btn-start" onclick="App.start('LOW')">START (LOW GFX)</button>
-            <button class="btn-start" onclick="App.start('MEDIUM')">START (MEDIUM GFX)</button>
-            <button class="btn-start" onclick="App.start('HIGH')">START (ULTRA GFX)</button>
-            <button class="btn-start" onclick="App.start('CONTINUE')">CONTINUE</button>
+        <div id="main-menu">
+            <h1 class="overlay-title">THE BACKROOMS</h1>
+            <p class="overlay-subtitle">PROCEDURAL GENERATION ENGINE v4.0<br>beta 0.05</p>
+            <div>
+                <button class="btn-start" id="play-button">PLAY</button>
+                <button class="btn-start" onclick="App.start('CONTINUE')">CONTINUE</button>
+            </div>
         </div>
-        <div id="credit">Engineered by Kantasu</div>
+        <div id="gfx-menu" style="display: none;">
+            <h1 class="overlay-title">SELECT GRAPHICS</h1>
+            <br>
+            <div>
+                <button class="btn-start" onclick="App.start('LOW')">LOW GFX</button>
+                <button class="btn-start" onclick="App.start('MEDIUM')">MEDIUM GFX</button>
+                <button class="btn-start" onclick="App.start('HIGH')">ULTRA GFX</button>
+            </div>
+        </div>
     </div>
+    <div id="credit">Engineered by Kantasu</div>
 
     <div id="hud">
         LEVEL: <span id="ui-lvl" style="color:#fff;">0</span> | BIOME: <span id="ui-biome">YELLOW</span><br>

@@ -85,6 +85,7 @@ class App {
             this.world.update(this.player, this.frustum); 
 
             overlay.style.display = 'none';
+            document.getElementById('credit').style.display = 'none';
 
             this.animate = this.animate.bind(this);
             this.animationId = null;
@@ -235,35 +236,59 @@ class App {
 
 window.App = App;
 
+window.addEventListener('DOMContentLoaded', () => {
+    const mainMenu = document.getElementById('main-menu');
+    const gfxMenu = document.getElementById('gfx-menu');
+    const playButton = document.getElementById('play-button');
+    const continueButton = document.querySelector('#main-menu .btn-start[onclick*="CONTINUE"]');
+    const overlay = document.getElementById('overlay');
 
-let selection = 0;
-const startButtons = document.querySelectorAll('.btn-start');
-const overlay = document.getElementById('overlay');
-const continueButton = document.querySelector('.btn-start[onclick*="CONTINUE"]');
+    if (!mainMenu || !gfxMenu || !playButton || !overlay) {
+        console.error("Required menu elements not found!");
+        return;
+    }
 
-if (!localStorage.getItem('playerState')) {
-    continueButton.style.display = 'none';
-}
+    if (continueButton) {
+        if (!localStorage.getItem('playerState')) {
+            continueButton.style.display = 'none';
+        }
+    }
 
+    playButton.addEventListener('click', () => {
+        mainMenu.style.display = 'none';
+        gfxMenu.style.display = 'block';
+        selection = 0; 
+        updateMenuSelection();
+    });
 
-if (startButtons.length > 0 && overlay) {
+    let selection = 0;
+    let startButtons = [];
+
     const updateMenuSelection = () => {
-        startButtons.forEach((btn, index) => {
-            if (index === selection) {
-                btn.style.backgroundColor = '#cccc77';
-                btn.style.transform = 'translateY(2px)';
-                btn.style.boxShadow = '0 2px #888855';
+        const activeMenu = gfxMenu.style.display === 'none' ? mainMenu : gfxMenu;
+        if (!activeMenu) return;
+        
+        startButtons = Array.from(activeMenu.querySelectorAll('.btn-start')).filter(btn => btn.style.display !== 'none');
 
-            } else {
-                btn.style.backgroundColor = '#ffffaa';
-                btn.style.transform = 'translateY(0px)';
-                btn.style.boxShadow = '0 4px #888855';
-            }
+        if (startButtons.length === 0) return;
+
+        if (selection >= startButtons.length) {
+            selection = startButtons.length - 1;
+        }
+        if (selection < 0) {
+            selection = 0;
+        }
+
+        startButtons.forEach((btn, index) => {
+            const isActive = index === selection;
+            btn.style.backgroundColor = isActive ? '#cccc77' : '#ffffaa';
+            btn.style.transform = isActive ? 'translateY(2px)' : 'translateY(0px)';
+            btn.style.boxShadow = isActive ? '0 2px #888855' : '0 4px #888855';
         });
     };
     
     const resetMenuSelection = () => {
-        startButtons.forEach(btn => {
+        document.querySelectorAll('.btn-start').forEach(btn => {
             btn.style.backgroundColor = '#ffffaa';
             btn.style.transform = 'translateY(0px)';
             btn.style.boxShadow = '0 4px #888855';
@@ -282,7 +307,7 @@ if (startButtons.length > 0 && overlay) {
 
         if (inputManager.getControllerType() !== 'gamepad') {
             resetMenuSelection();
-            requestAnimationFrame(menuLoop);
+            menuLoopId = requestAnimationFrame(menuLoop);
             return;
         }
         
@@ -293,24 +318,24 @@ if (startButtons.length > 0 && overlay) {
         if (gp) {
             const stickX = gp.axes[0];
             if (stickX < -0.5 && lastStickX >= -0.5) {
-                selection = (selection - 1 + startButtons.length) % startButtons.length;
+                selection = (selection > 0) ? selection - 1 : startButtons.length - 1;
             } else if (stickX > 0.5 && lastStickX <= 0.5) {
-                selection = (selection + 1) % startButtons.length;
+                selection = (selection < startButtons.length - 1) ? selection + 1 : 0;
             }
             lastStickX = stickX;
             
             const dpadX = (gp.buttons[14] && gp.buttons[14].pressed) ? -1 : ((gp.buttons[15] && gp.buttons[15].pressed) ? 1 : 0);
             if (dpadX === -1 && lastDPadX !== -1) {
-                 selection = (selection - 1 + startButtons.length) % startButtons.length;
+                 selection = (selection > 0) ? selection - 1 : startButtons.length - 1;
             } else if (dpadX === 1 && lastDPadX !== 1) {
-                selection = (selection + 1) % startButtons.length;
+                selection = (selection < startButtons.length - 1) ? selection + 1 : 0;
             }
             lastDPadX = dpadX;
 
             if (inputManager.gamepadInput.isActionPressed()) {
-                startButtons[selection].click();
-                if(menuLoopId) cancelAnimationFrame(menuLoopId);
-                return;
+                if(startButtons[selection]){
+                    startButtons[selection].click();
+                }
             }
         }
         
@@ -318,4 +343,4 @@ if (startButtons.length > 0 && overlay) {
     };
 
     menuLoop();
-}
+});
