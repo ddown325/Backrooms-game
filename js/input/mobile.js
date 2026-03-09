@@ -3,7 +3,8 @@ export class MobileInput {
         this.manager = manager;
 
         this.touch = {
-
+            joyId: -1, joyX: 0, joyY: 0,
+            lookId: -1, lookX: 0, lookY: 0,
         };
 
         const joyBase = document.getElementById('joy-base');
