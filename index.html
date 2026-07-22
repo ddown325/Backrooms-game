@@ -6887,6 +6887,7 @@ let discardedWallTex = null;
                 if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uFogColor.value.copy(fogCol);
                 if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uFogColor.value.copy(fogCol);
                 if (houseFurnitureCache.ceilingShaderMat) houseFurnitureCache.ceilingShaderMat.uniforms.uFogColor.value.copy(fogCol);
+                if (houseGroups && houseGroups.size > 0) { for (const entry of houseGroups.values()) { if (entry.group && entry.group.userData.picShaderMat) entry.group.userData.picShaderMat.uniforms.uFogColor.value.copy(fogCol); } }
                 if (isDull) {
                     const texArr = generateDullnessWallTexture();  
                     const t0 = texArr[0], t1 = texArr[1], t2 = texArr[2], t3 = texArr[3];
@@ -6907,8 +6908,8 @@ let discardedWallTex = null;
                     if (ceilingInstances) { const ctArr = generateDiscardedCeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = ctArr[0]; ceilingInstances.material.uniforms.uTexture1.value = ctArr[1]; ceilingInstances.material.uniforms.uTexture2.value = ctArr[2]; ceilingInstances.material.uniforms.uTexture3.value = ctArr[3]; ceilingInstances.material.uniforms.uDisableHeightAO.value = aoFlag; ceilingInstances.material.uniforms.uFogDensity.value = fogDens; ceilingInstances.material.uniforms.uUseTexVariant.value = useVar; }
                     if (floorInstances) { floorInstances.material.uniforms.uTexture.value = generateDiscardedFloorTexture(); floorInstances.material.uniforms.uDisableHeightAO.value = aoFlag; floorInstances.material.uniforms.uFogDensity.value = fogDens; floorInstances.material.uniforms.uUseTexVariant.value = 0.0; }
                     if (wallEastTrimB) { wallEastTrimB.material.uniforms.uTexture.value = generateDiscardedTrimTexture(); }
-                    if (houseFurnitureCache.wallpaperMatX) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = generateDiscardedWallTexture(); houseFurnitureCache.wallpaperMatX.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleU.value = 0.20; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleV.value = 0.333; }
-                    if (houseFurnitureCache.wallpaperMatZ) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = generateDiscardedWallTexture(); houseFurnitureCache.wallpaperMatZ.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleU.value = 0.20; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleV.value = 0.333; }
+                    if (houseFurnitureCache.wallpaperMatX) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = generateDiscardedWallTexture(); }
+                    if (houseFurnitureCache.wallpaperMatZ) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = generateDiscardedWallTexture(); }
                     if (lightPanelInstances) { lightPanelInstances.material.map = generateDiscardedLightPanelTexture(); lightPanelInstances.material.needsUpdate = true; }
                 } else {
                     if (wallEastInstances) { wallEastInstances.material.uniforms.uTexture.value = normalWallTex; wallEastInstances.material.uniforms.uDisableHeightAO.value = aoFlag; wallEastInstances.material.uniforms.uFogDensity.value = fogDens; wallEastInstances.material.uniforms.uUseTexVariant.value = useVar; wallEastInstances.material.uniforms.uUVScaleU.value = 0.35; wallEastInstances.material.uniforms.uUVScaleV.value = 0.333; }
@@ -6920,8 +6921,8 @@ let discardedWallTex = null;
                     if (ceilingInstances && normalCeilTex) { ceilingInstances.material.uniforms.uTexture.value = normalCeilTex; ceilingInstances.material.uniforms.uDisableHeightAO.value = aoFlag; ceilingInstances.material.uniforms.uFogDensity.value = fogDens; ceilingInstances.material.uniforms.uUseTexVariant.value = 0.0; }
                     if (floorInstances && normalFloorTex) { floorInstances.material.uniforms.uTexture.value = normalFloorTex; floorInstances.material.uniforms.uDisableHeightAO.value = aoFlag; floorInstances.material.uniforms.uFogDensity.value = fogDens; floorInstances.material.uniforms.uUseTexVariant.value = 0.0; }
                     if (wallEastTrimB && normalTrimTex) { wallEastTrimB.material.uniforms.uTexture.value = normalTrimTex; }
-                    if (houseFurnitureCache.wallpaperMatX && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; houseFurnitureCache.wallpaperMatX.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleU.value = 0.35; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleV.value = 0.333; }
-                    if (houseFurnitureCache.wallpaperMatZ && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; houseFurnitureCache.wallpaperMatZ.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleU.value = 0.35; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleV.value = 0.333; }
+                    if (houseFurnitureCache.wallpaperMatX && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; }
+                    if (houseFurnitureCache.wallpaperMatZ && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; }
                     if (lightPanelInstances && normalLightPanelTex) { lightPanelInstances.material.map = normalLightPanelTex; lightPanelInstances.material.needsUpdate = true; }
                 }
             }
@@ -15208,12 +15209,18 @@ let discardedWallTex = null;
                     if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uFogColor.value.copy(fogCol);
                     if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uFogColor.value.copy(fogCol);
                     if (houseFurnitureCache.ceilingShaderMat) houseFurnitureCache.ceilingShaderMat.uniforms.uFogColor.value.copy(fogCol);
+                    if (houseGroups && houseGroups.size > 0) { for (const entry of houseGroups.values()) { if (entry.group && entry.group.userData.picShaderMat) entry.group.userData.picShaderMat.uniforms.uFogColor.value.copy(fogCol); } }
+                if (houseGroups && houseGroups.size > 0) { for (const entry of houseGroups.values()) { if (entry.group && entry.group.userData.picShaderMat) entry.group.userData.picShaderMat.uniforms.uFogColor.value.copy(fogCol); } }
                         if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uFogColor.value.copy(fogCol);
                         if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uFogColor.value.copy(fogCol);
                         if (houseFurnitureCache.ceilingShaderMat) houseFurnitureCache.ceilingShaderMat.uniforms.uFogColor.value.copy(fogCol);
+                    if (houseGroups && houseGroups.size > 0) { for (const entry of houseGroups.values()) { if (entry.group && entry.group.userData.picShaderMat) entry.group.userData.picShaderMat.uniforms.uFogColor.value.copy(fogCol); } }
+                        if (houseGroups && houseGroups.size > 0) { for (const entry of houseGroups.values()) { if (entry.group && entry.group.userData.picShaderMat) entry.group.userData.picShaderMat.uniforms.uFogColor.value.copy(fogCol); } }
+                if (houseGroups && houseGroups.size > 0) { for (const entry of houseGroups.values()) { if (entry.group && entry.group.userData.picShaderMat) entry.group.userData.picShaderMat.uniforms.uFogColor.value.copy(fogCol); } }
                 if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uFogColor.value.copy(fogCol);
                 if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uFogColor.value.copy(fogCol);
                 if (houseFurnitureCache.ceilingShaderMat) houseFurnitureCache.ceilingShaderMat.uniforms.uFogColor.value.copy(fogCol);
+                if (houseGroups && houseGroups.size > 0) { for (const entry of houseGroups.values()) { if (entry.group && entry.group.userData.picShaderMat) entry.group.userData.picShaderMat.uniforms.uFogColor.value.copy(fogCol); } }
                         if (isDull) {
                             const texArr = generateDullnessWallTexture();
                             const t0 = texArr[0], t1 = texArr[1], t2 = texArr[2], t3 = texArr[3];
@@ -15233,8 +15240,8 @@ let discardedWallTex = null;
                             if (ceilingInstances) { const ctArr = generateDiscardedCeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = ctArr[0]; ceilingInstances.material.uniforms.uTexture1.value = ctArr[1]; ceilingInstances.material.uniforms.uTexture2.value = ctArr[2]; ceilingInstances.material.uniforms.uTexture3.value = ctArr[3]; ceilingInstances.material.uniforms.uDisableHeightAO.value = aoFlag; ceilingInstances.material.uniforms.uFogDensity.value = fogDens; ceilingInstances.material.uniforms.uUseTexVariant.value = useVar; }
                             if (floorInstances) { floorInstances.material.uniforms.uTexture.value = generateDiscardedFloorTexture(); floorInstances.material.uniforms.uDisableHeightAO.value = aoFlag; floorInstances.material.uniforms.uFogDensity.value = fogDens; floorInstances.material.uniforms.uUseTexVariant.value = 0.0; }
                         if (wallEastTrimB) { wallEastTrimB.material.uniforms.uTexture.value = generateDiscardedTrimTexture(); }
-                        if (houseFurnitureCache.wallpaperMatX) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = generateDiscardedWallTexture(); houseFurnitureCache.wallpaperMatX.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleU.value = 0.20; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleV.value = 0.333; }
-                        if (houseFurnitureCache.wallpaperMatZ) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = generateDiscardedWallTexture(); houseFurnitureCache.wallpaperMatZ.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleU.value = 0.20; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleV.value = 0.333; }
+                        if (houseFurnitureCache.wallpaperMatX) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = generateDiscardedWallTexture(); }
+                        if (houseFurnitureCache.wallpaperMatZ) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = generateDiscardedWallTexture(); }
                         if (lightPanelInstances) { lightPanelInstances.material.map = generateDiscardedLightPanelTexture(); lightPanelInstances.material.needsUpdate = true; }
                     if (lightPanelInstances) { lightPanelInstances.material.map = generateDiscardedLightPanelTexture(); lightPanelInstances.material.needsUpdate = true; }
                             if (wallEastTrimB) { wallEastTrimB.material.uniforms.uTexture.value = generateDiscardedTrimTexture(); }
@@ -15252,8 +15259,8 @@ let discardedWallTex = null;
                             if (ceilingInstances && normalCeilTex) { ceilingInstances.material.uniforms.uTexture.value = normalCeilTex; ceilingInstances.material.uniforms.uDisableHeightAO.value = aoFlag; ceilingInstances.material.uniforms.uFogDensity.value = fogDens; ceilingInstances.material.uniforms.uUseTexVariant.value = 0.0; }
                             if (floorInstances && normalFloorTex) { floorInstances.material.uniforms.uTexture.value = normalFloorTex; floorInstances.material.uniforms.uDisableHeightAO.value = aoFlag; floorInstances.material.uniforms.uFogDensity.value = fogDens; floorInstances.material.uniforms.uUseTexVariant.value = 0.0; }
                         if (wallEastTrimB && normalTrimTex) { wallEastTrimB.material.uniforms.uTexture.value = normalTrimTex; }
-                        if (houseFurnitureCache.wallpaperMatX && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; houseFurnitureCache.wallpaperMatX.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleU.value = 0.35; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleV.value = 0.333; }
-                        if (houseFurnitureCache.wallpaperMatZ && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; houseFurnitureCache.wallpaperMatZ.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleU.value = 0.35; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleV.value = 0.333; }
+                        if (houseFurnitureCache.wallpaperMatX && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; }
+                        if (houseFurnitureCache.wallpaperMatZ && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; }
                         if (lightPanelInstances && normalLightPanelTex) { lightPanelInstances.material.map = normalLightPanelTex; lightPanelInstances.material.needsUpdate = true; }
                     if (lightPanelInstances && normalLightPanelTex) { lightPanelInstances.material.map = normalLightPanelTex; lightPanelInstances.material.needsUpdate = true; }
                             if (wallEastTrimB && normalTrimTex) { wallEastTrimB.material.uniforms.uTexture.value = normalTrimTex; }
@@ -15365,9 +15372,12 @@ let discardedWallTex = null;
                     if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uFogColor.value.copy(fogCol);
                     if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uFogColor.value.copy(fogCol);
                     if (houseFurnitureCache.ceilingShaderMat) houseFurnitureCache.ceilingShaderMat.uniforms.uFogColor.value.copy(fogCol);
+                    if (houseGroups && houseGroups.size > 0) { for (const entry of houseGroups.values()) { if (entry.group && entry.group.userData.picShaderMat) entry.group.userData.picShaderMat.uniforms.uFogColor.value.copy(fogCol); } }
+                if (houseGroups && houseGroups.size > 0) { for (const entry of houseGroups.values()) { if (entry.group && entry.group.userData.picShaderMat) entry.group.userData.picShaderMat.uniforms.uFogColor.value.copy(fogCol); } }
                 if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uFogColor.value.copy(fogCol);
                 if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uFogColor.value.copy(fogCol);
                 if (houseFurnitureCache.ceilingShaderMat) houseFurnitureCache.ceilingShaderMat.uniforms.uFogColor.value.copy(fogCol);
+                if (houseGroups && houseGroups.size > 0) { for (const entry of houseGroups.values()) { if (entry.group && entry.group.userData.picShaderMat) entry.group.userData.picShaderMat.uniforms.uFogColor.value.copy(fogCol); } }
                     if (isDull) {
                         const texArr = generateDullnessWallTexture();
                         const t0 = texArr[0], t1 = texArr[1], t2 = texArr[2], t3 = texArr[3];
@@ -15387,8 +15397,8 @@ let discardedWallTex = null;
                         if (ceilingInstances) { const ctArr = generateDiscardedCeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = ctArr[0]; ceilingInstances.material.uniforms.uTexture1.value = ctArr[1]; ceilingInstances.material.uniforms.uTexture2.value = ctArr[2]; ceilingInstances.material.uniforms.uTexture3.value = ctArr[3]; ceilingInstances.material.uniforms.uDisableHeightAO.value = aoFlag; ceilingInstances.material.uniforms.uFogDensity.value = fogDens; ceilingInstances.material.uniforms.uUseTexVariant.value = useVar; }
                         if (floorInstances) { floorInstances.material.uniforms.uTexture.value = generateDiscardedFloorTexture(); floorInstances.material.uniforms.uDisableHeightAO.value = aoFlag; floorInstances.material.uniforms.uFogDensity.value = fogDens; floorInstances.material.uniforms.uUseTexVariant.value = 0.0; }
                         if (wallEastTrimB) { wallEastTrimB.material.uniforms.uTexture.value = generateDiscardedTrimTexture(); }
-                        if (houseFurnitureCache.wallpaperMatX) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = generateDiscardedWallTexture(); houseFurnitureCache.wallpaperMatX.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleU.value = 0.20; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleV.value = 0.333; }
-                        if (houseFurnitureCache.wallpaperMatZ) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = generateDiscardedWallTexture(); houseFurnitureCache.wallpaperMatZ.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleU.value = 0.20; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleV.value = 0.333; }
+                        if (houseFurnitureCache.wallpaperMatX) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = generateDiscardedWallTexture(); }
+                        if (houseFurnitureCache.wallpaperMatZ) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = generateDiscardedWallTexture(); }
                         if (lightPanelInstances) { lightPanelInstances.material.map = generateDiscardedLightPanelTexture(); lightPanelInstances.material.needsUpdate = true; }
                     if (lightPanelInstances) { lightPanelInstances.material.map = generateDiscardedLightPanelTexture(); lightPanelInstances.material.needsUpdate = true; }
                     if (wallEastTrimB) { wallEastTrimB.material.uniforms.uTexture.value = generateDiscardedTrimTexture(); }
@@ -15402,8 +15412,8 @@ let discardedWallTex = null;
                         if (ceilingInstances && normalCeilTex) { ceilingInstances.material.uniforms.uTexture.value = normalCeilTex; ceilingInstances.material.uniforms.uDisableHeightAO.value = aoFlag; ceilingInstances.material.uniforms.uFogDensity.value = fogDens; ceilingInstances.material.uniforms.uUseTexVariant.value = 0.0; }
                         if (floorInstances && normalFloorTex) { floorInstances.material.uniforms.uTexture.value = normalFloorTex; floorInstances.material.uniforms.uDisableHeightAO.value = aoFlag; floorInstances.material.uniforms.uFogDensity.value = fogDens; floorInstances.material.uniforms.uUseTexVariant.value = 0.0; }
                         if (wallEastTrimB && normalTrimTex) { wallEastTrimB.material.uniforms.uTexture.value = normalTrimTex; }
-                        if (houseFurnitureCache.wallpaperMatX && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; houseFurnitureCache.wallpaperMatX.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleU.value = 0.35; houseFurnitureCache.wallpaperMatX.uniforms.uUVScaleV.value = 0.333; }
-                        if (houseFurnitureCache.wallpaperMatZ && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; houseFurnitureCache.wallpaperMatZ.uniforms.uUseTexVariant.value = 0.0; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleU.value = 0.35; houseFurnitureCache.wallpaperMatZ.uniforms.uUVScaleV.value = 0.333; }
+                        if (houseFurnitureCache.wallpaperMatX && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; }
+                        if (houseFurnitureCache.wallpaperMatZ && houseFurnitureCache._defaultWallpaperTex) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = houseFurnitureCache._defaultWallpaperTex; }
                         if (lightPanelInstances && normalLightPanelTex) { lightPanelInstances.material.map = normalLightPanelTex; lightPanelInstances.material.needsUpdate = true; }
                     if (lightPanelInstances && normalLightPanelTex) { lightPanelInstances.material.map = normalLightPanelTex; lightPanelInstances.material.needsUpdate = true; }
                     if (wallEastTrimB && normalTrimTex) { wallEastTrimB.material.uniforms.uTexture.value = normalTrimTex; }
@@ -15872,19 +15882,25 @@ let discardedWallTex = null;
             
             pctx.fillStyle = '#ffd060';
             pctx.beginPath(); pctx.arc(95, 18, 8, 0, Math.PI * 2); pctx.fill();
+            pctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+            pctx.fillRect(0, 0, 128, 96);
             const picTex = new THREE.CanvasTexture(picCanvas);
-            
+            picTex.wrapS = THREE.ClampToEdgeWrapping;
+            picTex.wrapT = THREE.ClampToEdgeWrapping;
+
             const frameMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.6 });
             const frame = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.04), frameMat);
             frame.position.set(0, 1.9, -7.0);
             group.add(frame);
-            
+
+            const picShaderMat = createExplicitNonInstancedShader(picTex, 99);
             const picture = new THREE.Mesh(
                 new THREE.PlaneGeometry(0.82, 0.62),
-                new THREE.MeshStandardMaterial({ map: picTex, roughness: 0.8 })
+                picShaderMat
             );
             picture.position.set(0, 1.9, -6.97);
             group.add(picture);
+            group.userData.picShaderMat = picShaderMat;
 
             
             colBoxes.push({
