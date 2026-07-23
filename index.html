@@ -15608,6 +15608,95 @@ let discardedWallTex = null;
         
         
         
+
+
+        const _mergeVec = new THREE.Vector3();
+        const _mergeNorm = new THREE.Vector3();
+        const _mergeMat3 = new THREE.Matrix3();
+        const _mergeMat4 = new THREE.Matrix4();
+        function mergeBufferGeometries(meshes) {
+            let totalVerts = 0;
+            let totalIndices = 0;
+            for (const mesh of meshes) {
+                const geo = mesh.geometry;
+                if (!geo || !geo.attributes.position) continue;
+                totalVerts += geo.attributes.position.count;
+                if (geo.index) totalIndices += geo.index.count;
+                else totalIndices += geo.attributes.position.count;
+            }
+            if (totalVerts === 0) return null;
+            const positions = new Float32Array(totalVerts * 3);
+            const normals = new Float32Array(totalVerts * 3);
+            const uvs = new Float32Array(totalVerts * 2);
+            const indices = new Uint32Array(totalIndices);
+            let vOff = 0, iOff = 0;
+            for (const mesh of meshes) {
+                const geo = mesh.geometry;
+                const vCount = geo.attributes.position.count;
+                mesh.updateMatrix();
+                _mergeMat4.copy(mesh.matrix);
+                _mergeMat3.getNormalMatrix(_mergeMat4);
+                const pos = geo.attributes.position.array;
+                for (let i = 0; i < vCount; i++) {
+                    _mergeVec.fromArray(pos, i * 3).applyMatrix4(_mergeMat4);
+                    positions.set(_mergeVec.toArray(), (vOff + i) * 3);
+                }
+                if (geo.attributes.normal) {
+                    const norm = geo.attributes.normal.array;
+                    for (let i = 0; i < vCount; i++) {
+                        _mergeNorm.fromArray(norm, i * 3).applyMatrix3(_mergeMat3).normalize();
+                        normals.set(_mergeNorm.toArray(), (vOff + i) * 3);
+                    }
+                }
+                if (geo.attributes.uv) {
+                    uvs.set(geo.attributes.uv.array, vOff * 2);
+                }
+                if (geo.index) {
+                    const idx = geo.index.array;
+                    for (let i = 0; i < idx.length; i++) indices[iOff + i] = idx[i] + vOff;
+                    iOff += idx.length;
+                } else {
+                    for (let i = 0; i < vCount; i++) indices[iOff + i] = vOff + i;
+                    iOff += vCount;
+                }
+                vOff += vCount;
+            }
+            const merged = new THREE.BufferGeometry();
+            merged.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            merged.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+            merged.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+            merged.setIndex(new THREE.BufferAttribute(indices, 1));
+            return merged;
+        }
+
+        function mergeGroupMeshes(group, skipPredicate) {
+            const byMaterial = new Map();
+            const allMeshes = [];
+            for (const child of group.children) {
+                if (!(child instanceof THREE.Mesh)) continue;
+                if (skipPredicate && skipPredicate(child)) continue;
+                const mat = child.material;
+                if (!mat || !mat.isMeshStandardMaterial) continue;
+                allMeshes.push(child);
+            }
+            for (const mesh of allMeshes) {
+                const key = mesh.material.uuid;
+                if (!byMaterial.has(key)) byMaterial.set(key, { mat: mesh.material, meshes: [] });
+                byMaterial.get(key).meshes.push(mesh);
+            }
+            for (const { mat, meshes } of byMaterial.values()) {
+                if (meshes.length < 2) continue;
+                const merged = mergeBufferGeometries(meshes);
+                if (merged) {
+                    const mesh = new THREE.Mesh(merged, mat);
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    group.add(mesh);
+                    for (const m of meshes) group.remove(m);
+                }
+            }
+        }
+
         function buildHouseMegaRoom(scx, scz) {
             houseFurnitureCache.init();
             const G = houseFurnitureCache.geos;
@@ -16821,6 +16910,16 @@ let discardedWallTex = null;
                     child.userData.noDispose = true;
                 }
             });
+
+            const _isRadioOrDescendant = (m) => {
+                let node = m;
+                while (node) {
+                    if (node === radio) return true;
+                    node = node.parent;
+                }
+                return false;
+            };
+            mergeGroupMeshes(group, (m) => _isRadioOrDescendant(m) || (m.material && m.material.isShaderMaterial));
 
             return { group, radio, scx, scz };
         }
