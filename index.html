@@ -14523,10 +14523,6 @@ let discardedWallTex = null;
                     if (!isFallingInPit) {
                         let isHole = isHoleInPitfall(pgx, pgz) || isGapInPit(pgx, pgz) || isGapInSubLevelPit(pgx, pgz);
                         if (isHole) {
-                            let centerX = pgx * CELL_SIZE + CELL_SIZE / 2;
-                            let centerZ = pgz * CELL_SIZE + CELL_SIZE / 2;
-                            let fallThres = (isGapInPit(pgx, pgz) || isGapInSubLevelPit(pgx, pgz)) ? 1.8 : 0.85;
-                            if (Math.abs(player.pos.x - centerX) < fallThres && Math.abs(player.pos.z - centerZ) < fallThres) {
                                 isFallingInPit = true;
                                 forceCloseMap();
                                 pitFallTimer = 0.0;
@@ -14558,7 +14554,6 @@ let discardedWallTex = null;
                                         }
                                     }, 0);
                                 }
-                            }
                         }
                     }
 
