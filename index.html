@@ -669,6 +669,8 @@
         .tester-btn.dark:hover { background: #222; border-color: #888; }
         .tester-btn.purple { border-color: #4a2a6a; }
         .tester-btn.purple:hover { background: #2a1a3a; border-color: #8844cc; }
+        .tester-btn.cyan { border-color: #1a4a5a; }
+        .tester-btn.cyan:hover { background: #0a2a3a; border-color: #22aacc; }
         #tester-menu .hint {
             margin-top: 20px;
             font-size: 0.75rem;
@@ -827,6 +829,13 @@
     </div>
 
     <div id="fade-overlay"></div>
+    <div id="loading-screen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#070604;z-index:99999;display:none;flex-direction:column;justify-content:center;align-items:center;color:#ebdca4;font-family:'Courier New',Courier,monospace;">
+        <div id="loading-text" style="font-size:1.2rem;letter-spacing:4px;text-transform:uppercase;margin-bottom:20px;">LOADING</div>
+        <div id="loading-bar-bg" style="width:240px;height:4px;background:#1a1a0a;border:1px solid #3d381f;">
+            <div id="loading-bar-fill" style="width:0%;height:100%;background:#ebdca4;transition:width 0.3s ease;"></div>
+        </div>
+        <div id="loading-detail" style="font-size:0.7rem;color:#5a5030;margin-top:14px;letter-spacing:2px;">Preparing textures...</div>
+    </div>
     <div id="level-intro-bar"><div class="intro-text"></div></div>
     <div id="interact-prompt"></div>
     <div id="pickup-notification"></div>
@@ -1198,9 +1207,9 @@ const _AUDIO = [`data:audio/ogg;base64,T2dnUwACAAAAAAAAAABQMO66AAAAAK+zw7YBHgF2b
         
         
         let isDirectSubLevelStart = false;
-        const SUB_LEVEL_SEED_OFFSETS = { normal: 0, red: 0.1, blue: 0.555, dark: 0.01, dullness: 0.29, discarded: 0.248 };
-        const SUB_LEVEL_LABELS = { normal: 'Level 0', red: 'Level 0.1', blue: 'Level 0.555', dark: 'Level 0.01', dullness: 'Level 0.29', discarded: 'Level 0.248' };
-        const SUB_LEVEL_NAMES = { normal: 'Normal', red: 'Redrooms', blue: 'Bluerooms', dark: 'Darkrooms', dullness: 'Dullness', discarded: 'Discarded' };
+        const SUB_LEVEL_SEED_OFFSETS = { normal: 0, red: 0.1, blue: 0.555, dark: 0.01, dullness: 0.29, discarded: 0.248, level02: 0.2, level0777: 0.777, whiterooms: 0.897 };
+        const SUB_LEVEL_LABELS = { normal: 'Level 0', red: 'Level 0.1', blue: 'Level 0.555', dark: 'Level 0.01', dullness: 'Level 0.29', discarded: 'Level 0.248', level02: 'Level 0.2', level0777: 'Level 0.777', whiterooms: 'Level 0.897' };
+        const SUB_LEVEL_NAMES = { normal: 'Normal', red: 'Redrooms', blue: 'Bluerooms', dark: 'Darkrooms', dullness: 'Dullness', discarded: 'Discarded', level02: 'Remodeled Mess', level0777: 'Scopophobic Lobby', whiterooms: 'Whiterooms' };
         
         const SUB_LEVEL_THEMES = {
             normal:    { tint: [1.0, 1.0, 1.0], darkness: 1.0, mapFill: 'rgba(0,0,0,0)' },
@@ -1214,7 +1223,11 @@ const _AUDIO = [`data:audio/ogg;base64,T2dnUwACAAAAAAAAAABQMO66AAAAAK+zw7YBHgF2b
             dullness:  { tint: [1.12, 1.06, 0.55], darkness: 0.75, mapFill: 'rgba(180, 140, 60, 0.20)' },
             
             
-            discarded: { tint: [0.85, 0.35, 1.45], darkness: 1.0, mapFill: 'rgba(95, 35, 145, 0.30)' }
+            discarded: { tint: [0.85, 0.35, 1.45], darkness: 1.0, mapFill: 'rgba(95, 35, 145, 0.30)' },
+            
+            level02:   { tint: [1.05, 1.0, 1.0], darkness: 1.0, mapFill: 'rgba(120, 30, 30, 0.20)' },
+            level0777: { tint: [0.85, 0.88, 0.92], darkness: 0.82, mapFill: 'rgba(40, 40, 45, 0.25)' },
+            whiterooms:{ tint: [1.6, 1.6, 1.6], darkness: 1.15, mapFill: 'rgba(200, 200, 200, 0.15)' }
         };
         
         const SUB_LEVEL_PIT_COLORS = {
@@ -1223,7 +1236,10 @@ const _AUDIO = [`data:audio/ogg;base64,T2dnUwACAAAAAAAAAABQMO66AAAAAK+zw7YBHgF2b
             blue:      0x2d5fd2,
             dark:      0x0a0a0e,
             dullness:  0xb48c3c,
-            discarded: 0x6a2a82
+            discarded: 0x6a2a82,
+            level02:   0x8a2030,
+            level0777: 0x3a3a40,
+            whiterooms:0xc0c0c0
         };
 
         let wallEastInstances, wallSouthInstances, columnInstances;
@@ -1796,119 +1812,131 @@ const _AUDIO = [`data:audio/ogg;base64,T2dnUwACAAAAAAAAAABQMO66AAAAAK+zw7YBHgF2b
                     const c = document.createElement('canvas');
                     c.width = S; c.height = S;
                     const ctx = c.getContext('2d');
-                    
+
                     ctx.fillStyle = `rgb(${baseR},${baseG},${baseB})`;
                     ctx.fillRect(0, 0, S, S);
-                    
-                    const seamR = Math.max(0, baseR - 14);
-                    const seamG = Math.max(0, baseG - 12);
-                    const seamB = Math.max(0, baseB - 10);
-                    for (let x = 0; x < S; x += 64) {
-                        ctx.fillStyle = `rgba(${seamR},${seamG},${seamB},0.22)`;
-                        ctx.fillRect(x, 0, 1, S);
+
+                    const imgData = ctx.getImageData(0, 0, S, S);
+                    const data = imgData.data;
+                    for (let y = 0; y < S; y++) {
+                        for (let x = 0; x < S; x++) {
+                            const i = (y * S + x) * 4;
+                            const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 4;
+                            data[i]     = Math.max(0, Math.min(255, baseR + grain));
+                            data[i + 1] = Math.max(0, Math.min(255, baseG + grain));
+                            data[i + 2] = Math.max(0, Math.min(255, baseB + grain));
+                            data[i + 3] = 255;
+                        }
                     }
-                    
-                    const mR = Math.floor(baseR * 0.72);
-                    const mG = Math.floor(baseG * 0.78);
-                    const mB = Math.floor(baseB * 0.65);
-                    
-                    
-                    
-                    function drawDamask(cx, cy, scale) {
+                    ctx.putImageData(imgData, 0, 0);
+
+                    const sR = Math.min(255, baseR + 12);
+                    const sG = Math.min(255, baseG + 10);
+                    const sB = Math.min(255, baseB + 7);
+                    const dR = Math.max(0, baseR - 10);
+                    const dG = Math.max(0, baseG - 8);
+                    const dB = Math.max(0, baseB - 6);
+
+                    const stripeW = 32;
+                    const stripeGap = 64;
+                    for (let x = 0; x < S; x += stripeGap) {
+                        const grad = ctx.createLinearGradient(x, 0, x + stripeW, 0);
+                        grad.addColorStop(0, `rgba(${sR},${sG},${sB},0.20)`);
+                        grad.addColorStop(0.5, `rgba(${sR},${sG},${sB},0.35)`);
+                        grad.addColorStop(1, `rgba(${sR},${sG},${sB},0.20)`);
+                        ctx.fillStyle = grad;
+                        ctx.fillRect(x, 0, stripeW, S);
+                        ctx.fillStyle = `rgba(${dR},${dG},${dB},0.30)`;
+                        ctx.fillRect(x + stripeW, 0, 1, S);
+                    }
+
+                    const fR = Math.floor(baseR * 0.45);
+                    const fG = Math.floor(baseG * 0.50);
+                    const fB = Math.floor(baseB * 0.38);
+                    const aR = Math.floor(baseR * 0.68);
+                    const aG = Math.floor(baseG * 0.70);
+                    const aB = Math.floor(baseB * 0.60);
+
+                    function drawWrapped(x, y, fn) {
+                        for (let dx = -1; dx <= 1; dx++)
+                            for (let dy = -1; dy <= 1; dy++)
+                                fn(x + dx * S, y + dy * S);
+                    }
+
+                    function drawMotif(cx, cy) {
                         ctx.save();
                         ctx.translate(cx, cy);
-                        ctx.scale(scale, scale);
-                        ctx.strokeStyle = `rgba(${mR},${mG},${mB},0.38)`;
-                        ctx.fillStyle = `rgba(${mR},${mG},${mB},0.14)`;
-                        ctx.lineWidth = 2;
-                        
+                        ctx.strokeStyle = `rgba(${aR},${aG},${aB},0.25)`;
+                        ctx.fillStyle = `rgba(${fR},${fG},${fB},0.08)`;
+                        ctx.lineWidth = 1;
+                        ctx.lineCap = 'round';
+
                         ctx.beginPath();
-                        ctx.moveTo(0, -20);
-                        ctx.quadraticCurveTo(14, 0, 0, 20);
-                        ctx.quadraticCurveTo(-14, 0, 0, -20);
+                        ctx.moveTo(0, -8);
+                        ctx.lineTo(7, 0);
+                        ctx.lineTo(0, 8);
+                        ctx.lineTo(-7, 0);
+                        ctx.closePath();
                         ctx.fill();
                         ctx.stroke();
-                        
-                        for (let q = 0; q < 4; q++) {
+
+                        ctx.fillStyle = `rgba(${aR},${aG},${aB},0.15)`;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        for (let dir = 0; dir < 4; dir++) {
                             ctx.save();
-                            ctx.rotate((q * Math.PI) / 2 + Math.PI / 4);
+                            ctx.rotate(dir * Math.PI / 2 + Math.PI / 4);
                             ctx.beginPath();
-                            ctx.moveTo(0, 14);
-                            ctx.bezierCurveTo(10, 20, 22, 14, 24, 0);
-                            ctx.bezierCurveTo(26, -10, 18, -22, 8, -28);
-                            ctx.bezierCurveTo(20, -18, 16, -4, 6, 2);
-                            ctx.bezierCurveTo(-4, 8, -8, 16, 0, 14);
-                            ctx.fill();
+                            ctx.moveTo(0, 10);
+                            ctx.quadraticCurveTo(2, 14, 0, 18);
+                            ctx.quadraticCurveTo(-2, 14, 0, 10);
+                            ctx.strokeStyle = `rgba(${aR},${aG},${aB},0.15)`;
+                            ctx.lineWidth = 0.7;
                             ctx.stroke();
-                            
-                            ctx.beginPath();
-                            ctx.ellipse(8, -28, 3, 6, -0.4, 0, Math.PI * 2);
-                            ctx.fillStyle = `rgba(${mR},${mG},${mB},0.28)`;
-                            ctx.fill();
-                            ctx.strokeStyle = `rgba(${mR},${mG},${mB},0.38)`;
-                            ctx.stroke();
-                            ctx.fillStyle = `rgba(${mR},${mG},${mB},0.14)`;
                             ctx.restore();
                         }
-                        
-                        ctx.fillStyle = `rgba(${mR},${mG},${mB},0.30)`;
-                        for (let q = 0; q < 4; q++) {
-                            const a = (q * Math.PI) / 2 + Math.PI / 4;
-                            ctx.beginPath();
-                            ctx.arc(Math.cos(a) * 10, Math.sin(a) * 10, 1.5, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
+
                         ctx.restore();
                     }
-                    
-                    drawDamask(128, 128, 1.0);
-                    drawDamask(384, 128, 1.0);
-                    drawDamask(128, 384, 1.0);
-                    drawDamask(384, 384, 1.0);
-                    
-                    ctx.fillStyle = `rgba(${mR},${mG},${mB},0.22)`;
-                    for (let fx = 256; fx < S; fx += 256) {
-                        for (let fy = 0; fy <= S; fy += 128) {
-                            ctx.beginPath();
-                            ctx.arc(fx, fy, 2, 0, Math.PI * 2);
-                            ctx.fill();
+
+                    const spacing = 64;
+                    for (let mx = spacing / 2; mx < S; mx += spacing) {
+                        for (let my = spacing / 2; my < S; my += spacing) {
+                            const offX = (Math.floor(my / spacing) % 2 === 0) ? 0 : spacing / 2;
+                            const fx = mx + offX;
+                            if (fx < S) drawWrapped(fx, my, (x, y) => drawMotif(x, y));
                         }
                     }
-                    for (let fy = 256; fy < S; fy += 256) {
-                        for (let fx = 0; fx <= S; fx += 128) {
-                            ctx.beginPath();
-                            ctx.arc(fx, fy, 2, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-                    }
-                    
-                    const img = ctx.getImageData(0, 0, S, S);
-                    const data = img.data;
-                    for (let i = 0; i < data.length; i += 4) {
-                        const n = (Math.random() - 0.5) * 10;
-                        data[i]   = Math.min(255, Math.max(0, data[i]   + n));
-                        data[i+1] = Math.min(255, Math.max(0, data[i+1] + n));
-                        data[i+2] = Math.min(255, Math.max(0, data[i+2] + n));
-                    }
-                    ctx.putImageData(img, 0, 0);
-                    
-                    for (let s = 0; s < 6; s++) {
-                        const sx = Math.random() * S;
-                        const sy = Math.random() * S;
-                        const sr = 15 + Math.random() * 35;
-                        const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
-                        grad.addColorStop(0, `rgba(${Math.floor(baseR*0.82)},${Math.floor(baseG*0.82)},${Math.floor(baseB*0.82)},0.15)`);
-                        grad.addColorStop(1, 'rgba(0,0,0,0)');
-                        ctx.fillStyle = grad;
+
+                    ctx.strokeStyle = `rgba(${dR},${dG},${dB},0.08)`;
+                    ctx.lineWidth = 0.5;
+                    for (let x = stripeGap / 2; x < S; x += stripeGap) {
                         ctx.beginPath();
-                        ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-                        ctx.fill();
+                        ctx.moveTo(x, 0);
+                        ctx.lineTo(x, S);
+                        ctx.stroke();
                     }
-                    const tex = configureHighQualityTexture(new THREE.CanvasTexture(c));
-                    return tex;
+
+                    for (let i = 0; i < 5; i++) {
+                        const x = Math.random() * S;
+                        const y = Math.random() * S;
+                        const r = 20 + Math.random() * 35;
+                        drawWrapped(x, y, (px, py) => {
+                            const grad = ctx.createRadialGradient(px, py, 0, px, py, r);
+                            grad.addColorStop(0, `rgba(${Math.max(0,baseR-12)},${Math.max(0,baseG-10)},${Math.max(0,baseB-8)},0.04)`);
+                            grad.addColorStop(1, `rgba(${baseR},${baseG},${baseB},0)`);
+                            ctx.fillStyle = grad;
+                            ctx.fillRect(px - r, py - r, r * 2, r * 2);
+                        });
+                    }
+
+                    const tex = new THREE.CanvasTexture(c);
+                    return configureHighQualityTexture(tex);
                 }
 
-                
+
                 const couchFabricTex    = makeFabricTex(74, 90, 106, 0.6, 3);    
                 const cushionFabricTex  = makeFabricTex(90, 106, 122, 0.6, 2);   
                 const pillowFabricTex   = makeFabricTex(139, 106, 74, 0.55, 2);   
@@ -1973,11 +2001,17 @@ const _AUDIO = [`data:audio/ogg;base64,T2dnUwACAAAAAAAAAABQMO66AAAAAK+zw7YBHgF2b
                 this.wallpaperMatX.side = THREE.DoubleSide;
                 this.wallpaperMatZ.side = THREE.DoubleSide;
                 this._defaultWallpaperTex = houseWallpaperTex;
+                houseWallpaperTex.userData = houseWallpaperTex.userData || {};
+                houseWallpaperTex.userData.noDispose = true;
+                this.wallpaperMatX.userData = { noDispose: true };
+                this.wallpaperMatZ.userData = { noDispose: true };
                 nonInstancedShaderMaterials.push(this.wallpaperMatX, this.wallpaperMatZ);
                 
                 
                 this.ceilingShaderMat = createExplicitNonInstancedShader(this.ceilTex, 0);
                 this.ceilingShaderMat.side = THREE.DoubleSide;
+                this.ceilingShaderMat.userData = { noDispose: true };
+                if (this.ceilTex) { this.ceilTex.userData = { noDispose: true }; }
                 nonInstancedShaderMaterials.push(this.ceilingShaderMat);
                 this.mats.plantPot    = new THREE.MeshStandardMaterial({ map: terracottaTex, roughness: 0.8 });
                 this.mats.plantFoliage= new THREE.MeshStandardMaterial({ map: foliageTex, roughness: 0.95 });
@@ -2775,6 +2809,9 @@ const _AUDIO = [`data:audio/ogg;base64,T2dnUwACAAAAAAAAAABQMO66AAAAAK+zw7YBHgF2b
         
         const discardedFogColor = new THREE.Vector3(0.08, 0.02, 0.12);
         const normalFogColor = new THREE.Vector3(0.06, 0.05, 0.035);
+        const level02FogColor = new THREE.Vector3(0.08, 0.04, 0.04);
+        const level0777FogColor = new THREE.Vector3(0.04, 0.04, 0.05);
+        const whiteroomsFogColor = new THREE.Vector3(0.18, 0.18, 0.18);
         
         
         
@@ -3465,6 +3502,7 @@ let discardedWallTex = null;
             ctx.fillRect(0, 0, W, H);
 
             discardedWallTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            discardedWallTex.userData = { noDispose: true };
             return discardedWallTex;
         }
 
@@ -3706,6 +3744,7 @@ let discardedWallTex = null;
 
             const tex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
             discardedCeilTexArr.push(tex, tex, tex, tex);
+            tex.userData = { noDispose: true };
             return discardedCeilTexArr;
         }
 
@@ -3952,12 +3991,427 @@ let discardedWallTex = null;
             }
 
             discardedFloorTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            discardedFloorTex.userData = { noDispose: true };
             return discardedFloorTex;
         }
 
 
 
+
+        // === LEVEL 0.2 — Remodeled Mess textures ===
+        let level02WallTex = null;
+        function generateLevel02WallTexture() {
+            if (level02WallTex) return level02WallTex;
+            const W = 256, H = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#EDE9DD';
+            ctx.fillRect(0, 0, W, H);
+            const imgData = ctx.getImageData(0, 0, W, H);
+            const data = imgData.data;
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = (y * W + x) * 4;
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 8;
+                    data[i]     = Math.max(0, Math.min(255, 237 + grain));
+                    data[i + 1] = Math.max(0, Math.min(255, 233 + grain));
+                    data[i + 2] = Math.max(0, Math.min(255, 221 + grain));
+                    data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            function drawWrapped(ctx, x, y, drawFn) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        drawFn(x + dx * W, y + dy * H);
+                    }
+                }
+            }
+            for (let i = 0; i < 6; i++) {
+                const x = Math.random() * W;
+                const y = Math.random() * H;
+                const r = 20 + Math.random() * 40;
+                drawWrapped(ctx, x, y, (px, py) => {
+                    const grad = ctx.createRadialGradient(px, py, 0, px, py, r);
+                    grad.addColorStop(0, 'rgba(180, 175, 160, 0.08)');
+                    grad.addColorStop(1, 'rgba(180, 175, 160, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(px - r, py - r, r * 2, r * 2);
+                });
+            }
+            level02WallTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            level02WallTex.userData = { noDispose: true };
+            return level02WallTex;
+        }
+
+        let level02FloorTex = null;
+        function generateLevel02FloorTexture() {
+            if (level02FloorTex) return level02FloorTex;
+            const W = 256, H = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#7A1F35';
+            ctx.fillRect(0, 0, W, H);
+            const imgData = ctx.getImageData(0, 0, W, H);
+            const data = imgData.data;
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = (y * W + x) * 4;
+                    const n1 = Math.sin(x * 2 * Math.PI / W * 8.0) * Math.sin(y * 2 * Math.PI / H * 8.0);
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 14;
+                    const totalVar = n1 * 5 + grain;
+                    data[i]     = Math.max(0, Math.min(255, 122 + totalVar));
+                    data[i + 1] = Math.max(0, Math.min(255, 31 + totalVar * 0.3));
+                    data[i + 2] = Math.max(0, Math.min(255, 53 + totalVar * 0.5));
+                    data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            for (let i = 0; i < 1000; i++) {
+                const x = Math.random() * W;
+                const y = Math.random() * H;
+                const bright = Math.random() < 0.5;
+                ctx.fillStyle = bright
+                    ? 'rgba(139, 36, 56, ' + (0.08 + Math.random() * 0.12).toFixed(3) + ')'
+                    : 'rgba(60, 15, 25, ' + (0.08 + Math.random() * 0.12).toFixed(3) + ')';
+                ctx.fillRect(x, y, 1, 1);
+            }
+            level02FloorTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            level02FloorTex.userData = { noDispose: true };
+            return level02FloorTex;
+        }
+
+        let level02CeilTexArr = null;
+        function generateLevel02CeilingTexture() {
+            if (level02CeilTexArr) return level02CeilTexArr;
+            level02CeilTexArr = [];
+            const W = 256, H = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#E2DED2';
+            ctx.fillRect(0, 0, W, H);
+            const imgData = ctx.getImageData(0, 0, W, H);
+            const data = imgData.data;
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = (y * W + x) * 4;
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 10;
+                    data[i]     = Math.max(0, Math.min(255, 226 + grain));
+                    data[i + 1] = Math.max(0, Math.min(255, 222 + grain));
+                    data[i + 2] = Math.max(0, Math.min(255, 210 + grain));
+                    data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            ctx.strokeStyle = '#C0BCB0';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(0, 0, W, H);
+            ctx.strokeRect(0, H/2, W, H/2);
+            ctx.strokeRect(W/2, 0, W/2, H);
+            const tex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            level02CeilTexArr.push(tex, tex, tex, tex);
+            tex.userData = { noDispose: true };
+            return level02CeilTexArr;
+        }
+
+        // === LEVEL 0.777 — Scopophobic Lobby textures ===
+        let level0777WallTex = null;
+        function generateLevel0777WallTexture() {
+            if (level0777WallTex) return level0777WallTex;
+            const W = 256, H = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#5A5A60';
+            ctx.fillRect(0, 0, W, H);
+            const imgData = ctx.getImageData(0, 0, W, H);
+            const data = imgData.data;
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = (y * W + x) * 4;
+                    const n1 = Math.sin(x * 2 * Math.PI / W * 3.0) * Math.sin(y * 2 * Math.PI / H * 3.0);
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 14;
+                    const totalVar = n1 * 6 + grain;
+                    data[i]     = Math.max(0, Math.min(255, 90 + totalVar));
+                    data[i + 1] = Math.max(0, Math.min(255, 90 + totalVar));
+                    data[i + 2] = Math.max(0, Math.min(255, 96 + totalVar));
+                    data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            ctx.strokeStyle = 'rgba(40, 40, 45, 0.3)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 8; i++) {
+                const x = (i / 8) * W;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x + (Math.random() - 0.5) * 4, H);
+                ctx.stroke();
+            }
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * W;
+                const y = Math.random() * H;
+                const r = 5 + Math.random() * 15;
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+                grad.addColorStop(0, 'rgba(30, 30, 35, 0.15)');
+                grad.addColorStop(1, 'rgba(30, 30, 35, 0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(x - r, y - r, r * 2, r * 2);
+            }
+            level0777WallTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            level0777WallTex.userData = { noDispose: true };
+            return level0777WallTex;
+        }
+
+        let level0777FloorTex = null;
+        function generateLevel0777FloorTexture() {
+            if (level0777FloorTex) return level0777FloorTex;
+            const W = 256, H = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#2A2A2E';
+            ctx.fillRect(0, 0, W, H);
+            const imgData = ctx.getImageData(0, 0, W, H);
+            const data = imgData.data;
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = (y * W + x) * 4;
+                    const n1 = Math.sin(x * 2 * Math.PI / W * 4.0) * Math.sin(y * 2 * Math.PI / H * 4.0);
+                    const n2 = Math.sin(x * 2 * Math.PI / W * 15.0 + 1.7) * Math.sin(y * 2 * Math.PI / H * 12.0 + 0.4);
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 10;
+                    const totalVar = n1 * 4 + n2 * 3 + grain;
+                    data[i]     = Math.max(0, Math.min(255, 42 + totalVar));
+                    data[i + 1] = Math.max(0, Math.min(255, 42 + totalVar));
+                    data[i + 2] = Math.max(0, Math.min(255, 46 + totalVar));
+                    data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            ctx.strokeStyle = 'rgba(20, 20, 22, 0.4)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 12; i++) {
+                const x = Math.random() * W;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                for (let y = 0; y < H; y += 16) {
+                    ctx.lineTo(x + Math.sin(y * 0.05 + i) * 3, y);
+                }
+                ctx.stroke();
+            }
+            for (let i = 0; i < 30; i++) {
+                const x = Math.random() * W;
+                const y = Math.random() * H;
+                const r = 3 + Math.random() * 8;
+                ctx.fillStyle = 'rgba(15, 15, 18, ' + (0.15 + Math.random() * 0.2).toFixed(3) + ')';
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            level0777FloorTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            level0777FloorTex.userData = { noDispose: true };
+            return level0777FloorTex;
+        }
+
+        let level0777CeilTexArr = null;
+        function generateLevel0777CeilingTexture() {
+            if (level0777CeilTexArr) return level0777CeilTexArr;
+            level0777CeilTexArr = [];
+            const W = 256, H = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#4A4A50';
+            ctx.fillRect(0, 0, W, H);
+            const imgData = ctx.getImageData(0, 0, W, H);
+            const data = imgData.data;
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = (y * W + x) * 4;
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 10;
+                    data[i]     = Math.max(0, Math.min(255, 74 + grain));
+                    data[i + 1] = Math.max(0, Math.min(255, 74 + grain));
+                    data[i + 2] = Math.max(0, Math.min(255, 80 + grain));
+                    data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            ctx.strokeStyle = '#2A2A30';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(0, 0, W, H);
+            const tex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            level0777CeilTexArr.push(tex, tex, tex, tex);
+            tex.userData = { noDispose: true };
+            return level0777CeilTexArr;
+        }
+
+        // === WHITEROOMS — Level 0.897 textures ===
+        let whiteroomsWallTex = null;
+        function generateWhiteroomsWallTexture() {
+            if (whiteroomsWallTex) return whiteroomsWallTex;
+            const W = 256, H = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#D8D8D8';
+            ctx.fillRect(0, 0, W, H);
+            const imgData = ctx.getImageData(0, 0, W, H);
+            const data = imgData.data;
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = (y * W + x) * 4;
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 6;
+                    data[i]     = Math.max(0, Math.min(255, 216 + grain));
+                    data[i + 1] = Math.max(0, Math.min(255, 216 + grain));
+                    data[i + 2] = Math.max(0, Math.min(255, 216 + grain));
+                    data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            for (let i = 0; i < 15; i++) {
+                const x = Math.random() * W;
+                const y = Math.random() * H;
+                const r = 15 + Math.random() * 35;
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+                grad.addColorStop(0, 'rgba(200, 200, 200, 0.08)');
+                grad.addColorStop(1, 'rgba(200, 200, 200, 0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(x - r, y - r, r * 2, r * 2);
+            }
+            whiteroomsWallTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            whiteroomsWallTex.userData = { noDispose: true };
+            return whiteroomsWallTex;
+        }
+
+        let whiteroomsFloorTex = null;
+        function generateWhiteroomsFloorTexture() {
+            if (whiteroomsFloorTex) return whiteroomsFloorTex;
+            const W = 256, H = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#C8C8C8';
+            ctx.fillRect(0, 0, W, H);
+            const imgData = ctx.getImageData(0, 0, W, H);
+            const data = imgData.data;
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = (y * W + x) * 4;
+                    const n1 = Math.sin(x * 2 * Math.PI / W * 6.0) * Math.sin(y * 2 * Math.PI / H * 6.0);
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 8;
+                    const totalVar = n1 * 3 + grain;
+                    data[i]     = Math.max(0, Math.min(255, 200 + totalVar));
+                    data[i + 1] = Math.max(0, Math.min(255, 200 + totalVar));
+                    data[i + 2] = Math.max(0, Math.min(255, 200 + totalVar));
+                    data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            for (let i = 0; i < 800; i++) {
+                const x = Math.random() * W;
+                const y = Math.random() * H;
+                ctx.fillStyle = 'rgba(180, 180, 180, ' + (0.05 + Math.random() * 0.08).toFixed(3) + ')';
+                ctx.fillRect(x, y, 1, 1);
+            }
+            whiteroomsFloorTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            whiteroomsFloorTex.userData = { noDispose: true };
+            return whiteroomsFloorTex;
+        }
+
+        let whiteroomsCeilTexArr = null;
+        function generateWhiteroomsCeilingTexture() {
+            if (whiteroomsCeilTexArr) return whiteroomsCeilTexArr;
+            whiteroomsCeilTexArr = [];
+            const W = 256, H = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#E0E0E0';
+            ctx.fillRect(0, 0, W, H);
+            const imgData = ctx.getImageData(0, 0, W, H);
+            const data = imgData.data;
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = (y * W + x) * 4;
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 5;
+                    data[i]     = Math.max(0, Math.min(255, 224 + grain));
+                    data[i + 1] = Math.max(0, Math.min(255, 224 + grain));
+                    data[i + 2] = Math.max(0, Math.min(255, 224 + grain));
+                    data[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            const tex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            whiteroomsCeilTexArr.push(tex, tex, tex, tex);
+            tex.userData = { noDispose: true };
+            return whiteroomsCeilTexArr;
+        }
+
+        let level0777TrimTex = null;
+        function generateLevel0777TrimTexture() {
+            if (level0777TrimTex) return level0777TrimTex;
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#3a3a40';
+            ctx.fillRect(0, 0, 64, 64);
+            for (let y = 0; y < 64; y++) {
+                for (let x = 0; x < 64; x++) {
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 8;
+                    ctx.fillStyle = 'rgba(50, 50, 56, ' + Math.max(0, grain * 0.02 + 0.04).toFixed(3) + ')';
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+            level0777TrimTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            level0777TrimTex.userData = { noDispose: true };
+            return level0777TrimTex;
+        }
+
+        let whiteroomsTrimTex = null;
+        function generateWhiteroomsTrimTexture() {
+            if (whiteroomsTrimTex) return whiteroomsTrimTex;
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#c8c8c8';
+            ctx.fillRect(0, 0, 64, 64);
+            for (let y = 0; y < 64; y++) {
+                for (let x = 0; x < 64; x++) {
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 6;
+                    ctx.fillStyle = 'rgba(210, 210, 210, ' + Math.max(0, grain * 0.02 + 0.03).toFixed(3) + ')';
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+            whiteroomsTrimTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            whiteroomsTrimTex.userData = { noDispose: true };
+            return whiteroomsTrimTex;
+        }
+
+        let level02TrimTex = null;
+        function generateLevel02TrimTexture() {
+            if (level02TrimTex) return level02TrimTex;
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#c4b8a0';
+            ctx.fillRect(0, 0, 64, 64);
+            for (let y = 0; y < 64; y++) {
+                for (let x = 0; x < 64; x++) {
+                    const grain = (Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1.0 - 0.5) * 6;
+                    ctx.fillStyle = 'rgba(196, 184, 160, ' + Math.max(0, grain * 0.02 + 0.03).toFixed(3) + ')';
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+            level02TrimTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            level02TrimTex.userData = { noDispose: true };
+            return level02TrimTex;
+        }
+
         let discardedTrimTex = null;
+
         function generateDiscardedTrimTexture() {
             if (discardedTrimTex) return discardedTrimTex;
             const W = 64, H = 64;
@@ -3988,13 +4442,15 @@ let discardedWallTex = null;
             }
 
             discardedTrimTex = configureHighQualityTexture(new THREE.CanvasTexture(canvas));
+            discardedTrimTex.userData = { noDispose: true };
             return discardedTrimTex;
         }
 
 
         let discardedLightPanelTex = null;
         function generateDiscardedLightPanelTexture() {
-            if (discardedLightPanelTex) return discardedLightPanelTex;
+            if (discardedLightPanelTex) discardedLightPanelTex.userData = { noDispose: true };
+            return discardedLightPanelTex;
             const W = 256, H = 256;
             const canvas = document.createElement('canvas');
             canvas.width = W; canvas.height = H;
@@ -4139,6 +4595,7 @@ let discardedWallTex = null;
             discardedLightPanelTex.generateMipmaps = true;
             discardedLightPanelTex.wrapS = THREE.ClampToEdgeWrapping;
             discardedLightPanelTex.wrapT = THREE.ClampToEdgeWrapping;
+            discardedLightPanelTex.userData = { noDispose: true };
             return discardedLightPanelTex;
         }
 
@@ -6795,7 +7252,7 @@ let discardedWallTex = null;
         function getSubLevelPitDestination(scx, scz) {
             
             const h = fastHash2(scx, scz, worldSeed * 0.5);
-            const allTypes = ['normal', 'red', 'blue', 'dark', 'dullness', 'discarded'];
+            const allTypes = ['normal', 'red', 'blue', 'dark', 'dullness', 'discarded', 'level02', 'level0777', 'whiterooms'];
             const otherTypes = allTypes.filter(t => t !== currentSubLevel);
             return otherTypes[Math.floor(h * otherTypes.length)];
         }
@@ -6875,9 +7332,47 @@ let discardedWallTex = null;
                 let isDull = (type === 'dullness');
                 let isDiscarded = (type === 'discarded');
                 let aoFlag = isDull ? 1.0 : 0.0;
-                let fogDens = isDull ? 0.022 : (isDiscarded ? 0.030 : 0.036);
+                let fogDens = isDull ? 0.022 : (isDiscarded ? 0.030 : (currentSubLevel === 'level02' ? 0.030 : (currentSubLevel === 'level0777' ? 0.040 : (currentSubLevel === 'whiterooms' ? 0.020 : 0.036))));
                 let useVar = (isDull || isDiscarded) ? 1.0 : 0.0;
-                const fogCol = isDiscarded ? discardedFogColor : normalFogColor;
+                const fogCol = isDiscarded ? discardedFogColor : (currentSubLevel === 'level02' ? level02FogColor : (currentSubLevel === 'level0777' ? level0777FogColor : (currentSubLevel === 'whiterooms' ? whiteroomsFogColor : normalFogColor)));
+
+                if (currentSubLevel === 'level02') {
+                    const _l02w = generateLevel02WallTexture();
+                    if (wallEastInstances) wallEastInstances.material.uniforms.uTexture.value = _l02w;
+                    if (wallSouthInstances) wallSouthInstances.material.uniforms.uTexture.value = _l02w;
+                    if (columnInstances) columnInstances.material.uniforms.uTexture.value = _l02w;
+                    if (wallStretchEastInstances) wallStretchEastInstances.material.uniforms.uTexture.value = _l02w;
+                    if (wallStretchSouthInstances) wallStretchSouthInstances.material.uniforms.uTexture.value = _l02w;
+                    if (ceilingInstances) { const _ct = generateLevel02CeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = _ct[0]; ceilingInstances.material.uniforms.uTexture1.value = _ct[1]; ceilingInstances.material.uniforms.uTexture2.value = _ct[2]; ceilingInstances.material.uniforms.uTexture3.value = _ct[3]; }
+                    if (floorInstances) floorInstances.material.uniforms.uTexture.value = generateLevel02FloorTexture();
+                    if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = _l02w;
+                    if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = _l02w;
+                    if (wallEastTrimB) wallEastTrimB.material.uniforms.uTexture.value = generateLevel02TrimTexture();
+                } else if (currentSubLevel === 'level0777') {
+                    const _l77w = generateLevel0777WallTexture();
+                    if (wallEastInstances) wallEastInstances.material.uniforms.uTexture.value = _l77w;
+                    if (wallSouthInstances) wallSouthInstances.material.uniforms.uTexture.value = _l77w;
+                    if (columnInstances) columnInstances.material.uniforms.uTexture.value = _l77w;
+                    if (wallStretchEastInstances) wallStretchEastInstances.material.uniforms.uTexture.value = _l77w;
+                    if (wallStretchSouthInstances) wallStretchSouthInstances.material.uniforms.uTexture.value = _l77w;
+                    if (ceilingInstances) { const _ct = generateLevel0777CeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = _ct[0]; ceilingInstances.material.uniforms.uTexture1.value = _ct[1]; ceilingInstances.material.uniforms.uTexture2.value = _ct[2]; ceilingInstances.material.uniforms.uTexture3.value = _ct[3]; }
+                    if (floorInstances) floorInstances.material.uniforms.uTexture.value = generateLevel0777FloorTexture();
+                    if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = _l77w;
+                    if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = _l77w;
+                    if (wallEastTrimB) wallEastTrimB.material.uniforms.uTexture.value = generateLevel0777TrimTexture();
+                } else if (currentSubLevel === 'whiterooms') {
+                    const _wrw = generateWhiteroomsWallTexture();
+                    if (wallEastInstances) wallEastInstances.material.uniforms.uTexture.value = _wrw;
+                    if (wallSouthInstances) wallSouthInstances.material.uniforms.uTexture.value = _wrw;
+                    if (columnInstances) columnInstances.material.uniforms.uTexture.value = _wrw;
+                    if (wallStretchEastInstances) wallStretchEastInstances.material.uniforms.uTexture.value = _wrw;
+                    if (wallStretchSouthInstances) wallStretchSouthInstances.material.uniforms.uTexture.value = _wrw;
+                    if (ceilingInstances) { const _ct = generateWhiteroomsCeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = _ct[0]; ceilingInstances.material.uniforms.uTexture1.value = _ct[1]; ceilingInstances.material.uniforms.uTexture2.value = _ct[2]; ceilingInstances.material.uniforms.uTexture3.value = _ct[3]; }
+                    if (floorInstances) floorInstances.material.uniforms.uTexture.value = generateWhiteroomsFloorTexture();
+                    if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = _wrw;
+                    if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = _wrw;
+                    if (wallEastTrimB) wallEastTrimB.material.uniforms.uTexture.value = generateWhiteroomsTrimTexture();
+                }
                 if (wallEastInstances) wallEastInstances.material.uniforms.uFogColor.value.copy(fogCol);
                 if (wallSouthInstances) wallSouthInstances.material.uniforms.uFogColor.value.copy(fogCol);
                 if (columnInstances) columnInstances.material.uniforms.uFogColor.value.copy(fogCol);
@@ -6916,7 +7411,7 @@ let discardedWallTex = null;
                     if (houseFurnitureCache.wallpaperMatX) { houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = generateDiscardedWallTexture(); }
                     if (houseFurnitureCache.wallpaperMatZ) { houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = generateDiscardedWallTexture(); }
                     if (lightPanelInstances) { lightPanelInstances.material.map = generateDiscardedLightPanelTexture(); lightPanelInstances.material.needsUpdate = true; }
-                } else {
+                } else if (currentSubLevel !== 'level02' && currentSubLevel !== 'level0777' && currentSubLevel !== 'whiterooms') {
                     if (wallEastInstances) { wallEastInstances.material.uniforms.uTexture.value = normalWallTex; wallEastInstances.material.uniforms.uDisableHeightAO.value = aoFlag; wallEastInstances.material.uniforms.uFogDensity.value = fogDens; wallEastInstances.material.uniforms.uUseTexVariant.value = useVar; wallEastInstances.material.uniforms.uUVScaleU.value = 0.35; wallEastInstances.material.uniforms.uUVScaleV.value = 0.333; }
                     if (wallSouthInstances) { wallSouthInstances.material.uniforms.uTexture.value = normalWallTex; wallSouthInstances.material.uniforms.uDisableHeightAO.value = aoFlag; wallSouthInstances.material.uniforms.uFogDensity.value = fogDens; wallSouthInstances.material.uniforms.uUseTexVariant.value = useVar; wallSouthInstances.material.uniforms.uUVScaleU.value = 0.35; wallSouthInstances.material.uniforms.uUVScaleV.value = 0.333; }
                     if (columnInstances) { columnInstances.material.uniforms.uTexture.value = normalWallTex; columnInstances.material.uniforms.uDisableHeightAO.value = aoFlag; columnInstances.material.uniforms.uFogDensity.value = fogDens; columnInstances.material.uniforms.uUseTexVariant.value = useVar; columnInstances.material.uniforms.uUVScaleU.value = 0.35; columnInstances.material.uniforms.uUVScaleV.value = 0.333; }
@@ -7111,24 +7606,20 @@ let discardedWallTex = null;
                     
                     let floorY = 0;
                     let ceilY = WALL_HEIGHT;
-                    
+
+                    let ocx = ((cx % 3) + 3) % 3;
+                    let ocz = ((cz % 3) + 3) % 3;
+                    let rx = ocx * 5 + ((gx % 5) + 5) % 5;
+                    let rz = ocz * 5 + ((gz % 5) + 5) % 5;
+
                     if (isPit) {
-                        let ocx = ((cx % 3) + 3) % 3;
-                        let ocz = ((cz % 3) + 3) % 3;
-                        let rx = ocx * 5 + ((gx % 5) + 5) % 5;
-                        let rz = ocz * 5 + ((gz % 5) + 5) % 5;
-                        
                         if (isSubLevelPit) {
-                            
-                            
-                            
                             if (rx === 0 || rx === 14 || rz === 0 || rz === 14) {
                                 floorY = 0;
                             } else {
                                 floorY = -1000.0;
                             }
                         } else {
-                            
                             if (rx === 7 || rz === 7) {
                                 floorY = 0;
                             } else {
@@ -7136,7 +7627,7 @@ let discardedWallTex = null;
                             }
                         }
                     }
-                    
+
                     if (isInfRoof || isSubLevelPit) {
                         ceilY = 480.0; 
                     }
@@ -10206,16 +10697,20 @@ let discardedWallTex = null;
             if (cityGroup) cityGroup.visible = false;
 
             const wallTex = generateWallTexture();
-            normalWallTex = wallTex;  
+            normalWallTex = wallTex;
+            if (wallTex) wallTex.userData = { noDispose: true };
             const floorTex = generateCarpetTexture();
             const ceilTex = generateCeilingTexture();
-            normalCeilTex = ceilTex;  
+            normalCeilTex = ceilTex;
+            if (ceilTex) ceilTex.userData = { noDispose: true };
             normalFloorTex = floorTex;
+            if (floorTex) floorTex.userData = { noDispose: true };
             
             const trimCanvas = document.createElement('canvas'); trimCanvas.width = 16; trimCanvas.height = 16;
             const tCtx = trimCanvas.getContext('2d'); tCtx.fillStyle = '#7d7d7d'; tCtx.fillRect(0,0,16,16);
             const trimTex = configureHighQualityTexture(new THREE.CanvasTexture(trimCanvas));
             normalTrimTex = trimTex;
+            if (trimTex) trimTex.userData = { noDispose: true };
 
             const wallEastMat = createExplicitOrientedShader(wallTex, 1);
             const wallSouthMat = createExplicitOrientedShader(wallTex, 2);
@@ -10226,6 +10721,7 @@ let discardedWallTex = null;
             const ceilMat = createExplicitOrientedShader(ceilTex, 0);
             const lightPanelTex = generateLightPanelTexture();
             normalLightPanelTex = lightPanelTex;
+            if (lightPanelTex) lightPanelTex.userData = { noDispose: true };
             const lightFixtureMat = new THREE.MeshBasicMaterial({ map: lightPanelTex });
 
             const maxArea = Math.pow(RENDER_DISTANCE * 2 + 1, 2);
@@ -11007,10 +11503,88 @@ let discardedWallTex = null;
             animate();
         }
 
+        function preloadAllTextures(onDone) {
+            const ls = document.getElementById('loading-screen');
+            const bar = document.getElementById('loading-bar-fill');
+            const detail = document.getElementById('loading-detail');
+            if (ls) ls.style.display = 'flex';
+
+            const steps = [
+                ['Generating wall textures...', () => {
+                    generateLevel02WallTexture();
+                    generateLevel0777WallTexture();
+                    generateWhiteroomsWallTexture();
+                    generateDiscardedWallTexture();
+                }],
+                ['Generating floor textures...', () => {
+                    generateLevel02FloorTexture();
+                    generateLevel0777FloorTexture();
+                    generateWhiteroomsFloorTexture();
+                    generateDiscardedFloorTexture();
+                }],
+                ['Generating ceiling textures...', () => {
+                    generateLevel02CeilingTexture();
+                    generateLevel0777CeilingTexture();
+                    generateWhiteroomsCeilingTexture();
+                    generateDiscardedCeilingTexture();
+                }],
+                ['Generating trim textures...', () => {
+                    generateLevel0777TrimTexture();
+                    generateWhiteroomsTrimTexture();
+                    generateLevel02TrimTexture();
+                    generateDiscardedTrimTexture();
+                }],
+                ['Generating light panels...', () => {
+                    generateDiscardedLightPanelTexture();
+                }],
+                ['Finalizing...', () => {}]
+            ];
+
+            let stepIdx = 0;
+            function nextStep() {
+                if (stepIdx >= steps.length) {
+                    if (bar) bar.style.width = '100%';
+                    if (detail) detail.textContent = 'Ready';
+                    setTimeout(() => {
+                        if (ls) ls.style.display = 'none';
+                        if (onDone) onDone();
+                    }, 300);
+                    return;
+                }
+                const [label, fn] = steps[stepIdx];
+                if (detail) detail.textContent = label;
+                if (bar) bar.style.width = ((stepIdx / steps.length) * 100) + '%';
+                try { fn(); } catch(e) {}
+                stepIdx++;
+                setTimeout(nextStep, 50);
+            }
+            nextStep();
+        }
+
         function buildMenuButtons() {
             const container = document.getElementById('menu-buttons-container');
             container.innerHTML = '';
-            
+
+            try {
+                generateLevel02WallTexture();
+                generateLevel02FloorTexture();
+                generateLevel02CeilingTexture();
+                generateLevel0777WallTexture();
+                generateLevel0777FloorTexture();
+                generateLevel0777CeilingTexture();
+                generateWhiteroomsWallTexture();
+                generateWhiteroomsFloorTexture();
+                generateWhiteroomsCeilingTexture();
+                generateDiscardedWallTexture();
+                generateDiscardedFloorTexture();
+                generateDiscardedCeilingTexture();
+                generateDiscardedTrimTexture();
+                generateDiscardedLightPanelTexture();
+                generateLevel0777TrimTexture();
+                generateWhiteroomsTrimTexture();
+                generateLevel02TrimTexture();
+            } catch(e) {}
+
             const hasSave = localStorage.getItem('backrooms_save_vhs') !== null;
             
             if (!hasSave) {
@@ -11018,18 +11592,27 @@ let discardedWallTex = null;
                 btn.id = 'start-btn';
                 btn.className = 'menu-btn';
                 btn.innerHTML = 'PLAY VIDEOTAPE <span class="gamepad-hint">(A)</span>';
-                btn.addEventListener('click', () => { triggerFullscreen(); startGame(false); });
+                btn.addEventListener('click', () => {
+                    triggerFullscreen();
+                    preloadAllTextures(() => { startGame(false); });
+                });
                 container.appendChild(btn);
             } else {
                 const resumeBtn = document.createElement('button');
                 resumeBtn.className = 'menu-btn';
                 resumeBtn.innerHTML = 'RESUME VHS <span class="gamepad-hint">(A)</span>';
-                resumeBtn.addEventListener('click', () => { triggerFullscreen(); startGame(true); });
-                
+                resumeBtn.addEventListener('click', () => {
+                    triggerFullscreen();
+                    preloadAllTextures(() => { startGame(true); });
+                });
+
                 const newBtn = document.createElement('button');
                 newBtn.className = 'menu-btn';
                 newBtn.innerHTML = 'NEW VHS TAPE <span class="gamepad-hint">(X)</span>';
-                newBtn.addEventListener('click', () => { triggerFullscreen(); startGame(false); });
+                newBtn.addEventListener('click', () => {
+                    triggerFullscreen();
+                    preloadAllTextures(() => { startGame(false); });
+                });
                 
                 container.appendChild(resumeBtn);
                 container.appendChild(newBtn);
@@ -11581,25 +12164,43 @@ let discardedWallTex = null;
         function disposeObject3D(obj) {
             if (!obj) return;
             obj.traverse(child => {
-                
+
                 if (child.userData && child.userData.noDispose) return;
 
-                
                 if (child.geometry) {
                     child.geometry.dispose();
                 }
-                
+
                 if (child.material) {
                     const mats = Array.isArray(child.material) ? child.material : [child.material];
                     for (const mat of mats) {
                         if (!mat) continue;
-                        
+                        if (mat.userData && mat.userData.noDispose) continue;
+
                         for (const prop in mat) {
                             const val = mat[prop];
                             if (val && val.isTexture) {
+                                if (val.userData && val.userData.noDispose) continue;
                                 val.dispose();
                             }
                         }
+
+                        if (mat.uniforms) {
+                            for (const uname in mat.uniforms) {
+                                const uval = mat.uniforms[uname].value;
+                                if (uval && uval.isTexture) {
+                                    if (uval.userData && uval.userData.noDispose) continue;
+                                    uval.dispose();
+                                }
+                                if (uval && uval.length !== undefined && uval[0] && uval[0].isTexture) {
+                                    for (const t of uval) {
+                                        if (t && t.userData && t.userData.noDispose) continue;
+                                        if (t) t.dispose();
+                                    }
+                                }
+                            }
+                        }
+
                         mat.dispose();
                     }
                 }
@@ -12738,6 +13339,7 @@ let discardedWallTex = null;
                 lastMtxGridX = pGridX;
                 lastMtxGridZ = pGridZ;
                 forceRebuildMtx = false;
+
 
                 _lastGridChangeEndMs = performance.now();
             } else {
@@ -14745,7 +15347,8 @@ let discardedWallTex = null;
                             
                             const bobAmp = 0.018 * speedRatio * sprintMult;
                             const verticalBob = Math.sin(walkBobCycle * 2.0) * bobAmp;
-                            camera.position.y = 1.42 + verticalBob;
+                            let _baseY = 1.42;
+                            camera.position.y = _baseY + verticalBob;
 
                             
                             const swayAmp = 0.014 * speedRatio * sprintMult;
@@ -14880,7 +15483,7 @@ let discardedWallTex = null;
                 
                 
                 {
-                    let showTrims = currentSubLevel !== 'dullness';
+                    let showTrims = currentSubLevel !== 'dullness' && currentSubLevel !== 'level02';
                     wallEastTrimB.visible = showTrims;
                     wallEastTrimT.visible = showTrims;
                     wallSouthTrimB.visible = showTrims;
@@ -15211,9 +15814,44 @@ let discardedWallTex = null;
                         let isDull = (currentSubLevel === 'dullness');
                         let isDiscarded = (currentSubLevel === 'discarded');
                         let aoFlag = isDull ? 1.0 : 0.0;
-                        let fogDens = isDull ? 0.022 : (isDiscarded ? 0.030 : 0.036);
+                        let fogDens = isDull ? 0.022 : (isDiscarded ? 0.030 : (currentSubLevel === 'level02' ? 0.030 : (currentSubLevel === 'level0777' ? 0.040 : (currentSubLevel === 'whiterooms' ? 0.020 : 0.036))));
                         let useVar = (isDull || isDiscarded) ? 1.0 : 0.0;
-                        const fogCol = isDiscarded ? discardedFogColor : normalFogColor;
+                        const fogCol = isDiscarded ? discardedFogColor : (currentSubLevel === 'level02' ? level02FogColor : (currentSubLevel === 'level0777' ? level0777FogColor : (currentSubLevel === 'whiterooms' ? whiteroomsFogColor : normalFogColor)));
+
+                        if (currentSubLevel === 'level02') {
+                            const _l02w = generateLevel02WallTexture();
+                            if (wallEastInstances) wallEastInstances.material.uniforms.uTexture.value = _l02w;
+                            if (wallSouthInstances) wallSouthInstances.material.uniforms.uTexture.value = _l02w;
+                            if (columnInstances) columnInstances.material.uniforms.uTexture.value = _l02w;
+                            if (wallStretchEastInstances) wallStretchEastInstances.material.uniforms.uTexture.value = _l02w;
+                            if (wallStretchSouthInstances) wallStretchSouthInstances.material.uniforms.uTexture.value = _l02w;
+                            if (ceilingInstances) { const _ct = generateLevel02CeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = _ct[0]; ceilingInstances.material.uniforms.uTexture1.value = _ct[1]; ceilingInstances.material.uniforms.uTexture2.value = _ct[2]; ceilingInstances.material.uniforms.uTexture3.value = _ct[3]; }
+                            if (floorInstances) floorInstances.material.uniforms.uTexture.value = generateLevel02FloorTexture();
+                            if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = _l02w;
+                            if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = _l02w;
+                        } else if (currentSubLevel === 'level0777') {
+                            const _l77w = generateLevel0777WallTexture();
+                            if (wallEastInstances) wallEastInstances.material.uniforms.uTexture.value = _l77w;
+                            if (wallSouthInstances) wallSouthInstances.material.uniforms.uTexture.value = _l77w;
+                            if (columnInstances) columnInstances.material.uniforms.uTexture.value = _l77w;
+                            if (wallStretchEastInstances) wallStretchEastInstances.material.uniforms.uTexture.value = _l77w;
+                            if (wallStretchSouthInstances) wallStretchSouthInstances.material.uniforms.uTexture.value = _l77w;
+                            if (ceilingInstances) { const _ct = generateLevel0777CeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = _ct[0]; ceilingInstances.material.uniforms.uTexture1.value = _ct[1]; ceilingInstances.material.uniforms.uTexture2.value = _ct[2]; ceilingInstances.material.uniforms.uTexture3.value = _ct[3]; }
+                            if (floorInstances) floorInstances.material.uniforms.uTexture.value = generateLevel0777FloorTexture();
+                            if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = _l77w;
+                            if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = _l77w;
+                        } else if (currentSubLevel === 'whiterooms') {
+                            const _wrw = generateWhiteroomsWallTexture();
+                            if (wallEastInstances) wallEastInstances.material.uniforms.uTexture.value = _wrw;
+                            if (wallSouthInstances) wallSouthInstances.material.uniforms.uTexture.value = _wrw;
+                            if (columnInstances) columnInstances.material.uniforms.uTexture.value = _wrw;
+                            if (wallStretchEastInstances) wallStretchEastInstances.material.uniforms.uTexture.value = _wrw;
+                            if (wallStretchSouthInstances) wallStretchSouthInstances.material.uniforms.uTexture.value = _wrw;
+                            if (ceilingInstances) { const _ct = generateWhiteroomsCeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = _ct[0]; ceilingInstances.material.uniforms.uTexture1.value = _ct[1]; ceilingInstances.material.uniforms.uTexture2.value = _ct[2]; ceilingInstances.material.uniforms.uTexture3.value = _ct[3]; }
+                            if (floorInstances) floorInstances.material.uniforms.uTexture.value = generateWhiteroomsFloorTexture();
+                            if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = _wrw;
+                            if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = _wrw;
+                        }
                         if (wallEastInstances) wallEastInstances.material.uniforms.uFogColor.value.copy(fogCol);
                         if (wallSouthInstances) wallSouthInstances.material.uniforms.uFogColor.value.copy(fogCol);
                         if (columnInstances) columnInstances.material.uniforms.uFogColor.value.copy(fogCol);
@@ -15269,7 +15907,7 @@ let discardedWallTex = null;
                     if (lightPanelInstances) { lightPanelInstances.material.map = generateDiscardedLightPanelTexture(); lightPanelInstances.material.needsUpdate = true; }
                     if (wallEastTrimB) { wallEastTrimB.material.uniforms.uTexture.value = generateDiscardedTrimTexture(); }
                     if (lightPanelInstances) { lightPanelInstances.material.map = generateDiscardedLightPanelTexture(); lightPanelInstances.material.needsUpdate = true; }
-                        } else {
+                        } else if (currentSubLevel !== 'level02' && currentSubLevel !== 'level0777' && currentSubLevel !== 'whiterooms') {
                             if (wallEastInstances) { wallEastInstances.material.uniforms.uTexture.value = normalWallTex; wallEastInstances.material.uniforms.uDisableHeightAO.value = aoFlag; wallEastInstances.material.uniforms.uFogDensity.value = fogDens; wallEastInstances.material.uniforms.uUseTexVariant.value = useVar; wallEastInstances.material.uniforms.uUVScaleU.value = 0.35; wallEastInstances.material.uniforms.uUVScaleV.value = 0.333; }
                             if (wallSouthInstances) { wallSouthInstances.material.uniforms.uTexture.value = normalWallTex; wallSouthInstances.material.uniforms.uDisableHeightAO.value = aoFlag; wallSouthInstances.material.uniforms.uFogDensity.value = fogDens; wallSouthInstances.material.uniforms.uUseTexVariant.value = useVar; wallSouthInstances.material.uniforms.uUVScaleU.value = 0.35; wallSouthInstances.material.uniforms.uUVScaleV.value = 0.333; }
                             if (columnInstances) { columnInstances.material.uniforms.uTexture.value = normalWallTex; columnInstances.material.uniforms.uDisableHeightAO.value = aoFlag; columnInstances.material.uniforms.uFogDensity.value = fogDens; columnInstances.material.uniforms.uUseTexVariant.value = useVar; columnInstances.material.uniforms.uUVScaleU.value = 0.35; columnInstances.material.uniforms.uUVScaleV.value = 0.333; }
@@ -15321,7 +15959,7 @@ let discardedWallTex = null;
                     baseWorldSeed = Math.random() * 100000;
                 }
                 
-                if (opts.forceSubLevel === 'red' || opts.forceSubLevel === 'blue' || opts.forceSubLevel === 'dark' || opts.forceSubLevel === 'dullness' || opts.forceSubLevel === 'discarded' || opts.forceSubLevel === 'normal') {
+                if (opts.forceSubLevel === 'red' || opts.forceSubLevel === 'blue' || opts.forceSubLevel === 'dark' || opts.forceSubLevel === 'dullness' || opts.forceSubLevel === 'discarded' || opts.forceSubLevel === 'level02' || opts.forceSubLevel === 'level0777' || opts.forceSubLevel === 'whiterooms' || opts.forceSubLevel === 'normal') {
                     currentSubLevel = opts.forceSubLevel;
                 } else {
                     currentSubLevel = 'normal';
@@ -15374,9 +16012,44 @@ let discardedWallTex = null;
                     let isDull = (currentSubLevel === 'dullness');
                     let isDiscarded = (currentSubLevel === 'discarded');
                     let aoFlag = isDull ? 1.0 : 0.0;
-                    let fogDens = isDull ? 0.022 : (isDiscarded ? 0.030 : 0.036);
+                    let fogDens = isDull ? 0.022 : (isDiscarded ? 0.030 : (currentSubLevel === 'level02' ? 0.030 : (currentSubLevel === 'level0777' ? 0.040 : (currentSubLevel === 'whiterooms' ? 0.020 : 0.036))));
                     let useVar = (isDull || isDiscarded) ? 1.0 : 0.0;
-                    const fogCol = isDiscarded ? discardedFogColor : normalFogColor;
+                    const fogCol = isDiscarded ? discardedFogColor : (currentSubLevel === 'level02' ? level02FogColor : (currentSubLevel === 'level0777' ? level0777FogColor : (currentSubLevel === 'whiterooms' ? whiteroomsFogColor : normalFogColor)));
+
+                    if (currentSubLevel === 'level02') {
+                        const _l02w = generateLevel02WallTexture();
+                        if (wallEastInstances) wallEastInstances.material.uniforms.uTexture.value = _l02w;
+                        if (wallSouthInstances) wallSouthInstances.material.uniforms.uTexture.value = _l02w;
+                        if (columnInstances) columnInstances.material.uniforms.uTexture.value = _l02w;
+                        if (wallStretchEastInstances) wallStretchEastInstances.material.uniforms.uTexture.value = _l02w;
+                        if (wallStretchSouthInstances) wallStretchSouthInstances.material.uniforms.uTexture.value = _l02w;
+                        if (ceilingInstances) { const _ct = generateLevel02CeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = _ct[0]; ceilingInstances.material.uniforms.uTexture1.value = _ct[1]; ceilingInstances.material.uniforms.uTexture2.value = _ct[2]; ceilingInstances.material.uniforms.uTexture3.value = _ct[3]; }
+                        if (floorInstances) floorInstances.material.uniforms.uTexture.value = generateLevel02FloorTexture();
+                        if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = _l02w;
+                        if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = _l02w;
+                    } else if (currentSubLevel === 'level0777') {
+                        const _l77w = generateLevel0777WallTexture();
+                        if (wallEastInstances) wallEastInstances.material.uniforms.uTexture.value = _l77w;
+                        if (wallSouthInstances) wallSouthInstances.material.uniforms.uTexture.value = _l77w;
+                        if (columnInstances) columnInstances.material.uniforms.uTexture.value = _l77w;
+                        if (wallStretchEastInstances) wallStretchEastInstances.material.uniforms.uTexture.value = _l77w;
+                        if (wallStretchSouthInstances) wallStretchSouthInstances.material.uniforms.uTexture.value = _l77w;
+                        if (ceilingInstances) { const _ct = generateLevel0777CeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = _ct[0]; ceilingInstances.material.uniforms.uTexture1.value = _ct[1]; ceilingInstances.material.uniforms.uTexture2.value = _ct[2]; ceilingInstances.material.uniforms.uTexture3.value = _ct[3]; }
+                        if (floorInstances) floorInstances.material.uniforms.uTexture.value = generateLevel0777FloorTexture();
+                        if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = _l77w;
+                        if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = _l77w;
+                    } else if (currentSubLevel === 'whiterooms') {
+                        const _wrw = generateWhiteroomsWallTexture();
+                        if (wallEastInstances) wallEastInstances.material.uniforms.uTexture.value = _wrw;
+                        if (wallSouthInstances) wallSouthInstances.material.uniforms.uTexture.value = _wrw;
+                        if (columnInstances) columnInstances.material.uniforms.uTexture.value = _wrw;
+                        if (wallStretchEastInstances) wallStretchEastInstances.material.uniforms.uTexture.value = _wrw;
+                        if (wallStretchSouthInstances) wallStretchSouthInstances.material.uniforms.uTexture.value = _wrw;
+                        if (ceilingInstances) { const _ct = generateWhiteroomsCeilingTexture(); ceilingInstances.material.uniforms.uTexture.value = _ct[0]; ceilingInstances.material.uniforms.uTexture1.value = _ct[1]; ceilingInstances.material.uniforms.uTexture2.value = _ct[2]; ceilingInstances.material.uniforms.uTexture3.value = _ct[3]; }
+                        if (floorInstances) floorInstances.material.uniforms.uTexture.value = generateWhiteroomsFloorTexture();
+                        if (houseFurnitureCache.wallpaperMatX) houseFurnitureCache.wallpaperMatX.uniforms.uTexture.value = _wrw;
+                        if (houseFurnitureCache.wallpaperMatZ) houseFurnitureCache.wallpaperMatZ.uniforms.uTexture.value = _wrw;
+                    }
                     if (wallEastInstances) wallEastInstances.material.uniforms.uFogColor.value.copy(fogCol);
                     if (wallSouthInstances) wallSouthInstances.material.uniforms.uFogColor.value.copy(fogCol);
                     if (columnInstances) columnInstances.material.uniforms.uFogColor.value.copy(fogCol);
@@ -15422,7 +16095,7 @@ let discardedWallTex = null;
                     if (lightPanelInstances) { lightPanelInstances.material.map = generateDiscardedLightPanelTexture(); lightPanelInstances.material.needsUpdate = true; }
                     if (wallEastTrimB) { wallEastTrimB.material.uniforms.uTexture.value = generateDiscardedTrimTexture(); }
                     if (lightPanelInstances) { lightPanelInstances.material.map = generateDiscardedLightPanelTexture(); lightPanelInstances.material.needsUpdate = true; }
-                    } else {
+                    } else if (currentSubLevel !== 'level02' && currentSubLevel !== 'level0777' && currentSubLevel !== 'whiterooms') {
                         if (wallEastInstances) { wallEastInstances.material.uniforms.uTexture.value = normalWallTex; wallEastInstances.material.uniforms.uDisableHeightAO.value = aoFlag; wallEastInstances.material.uniforms.uFogDensity.value = fogDens; wallEastInstances.material.uniforms.uUseTexVariant.value = useVar; wallEastInstances.material.uniforms.uUVScaleU.value = 0.35; wallEastInstances.material.uniforms.uUVScaleV.value = 0.333; }
                         if (wallSouthInstances) { wallSouthInstances.material.uniforms.uTexture.value = normalWallTex; wallSouthInstances.material.uniforms.uDisableHeightAO.value = aoFlag; wallSouthInstances.material.uniforms.uFogDensity.value = fogDens; wallSouthInstances.material.uniforms.uUseTexVariant.value = useVar; wallSouthInstances.material.uniforms.uUVScaleU.value = 0.35; wallSouthInstances.material.uniforms.uUVScaleV.value = 0.333; }
                         if (columnInstances) { columnInstances.material.uniforms.uTexture.value = normalWallTex; columnInstances.material.uniforms.uDisableHeightAO.value = aoFlag; columnInstances.material.uniforms.uFogDensity.value = fogDens; columnInstances.material.uniforms.uUseTexVariant.value = useVar; columnInstances.material.uniforms.uUVScaleU.value = 0.35; columnInstances.material.uniforms.uUVScaleV.value = 0.333; }
@@ -16059,6 +16732,7 @@ let discardedWallTex = null;
                 group.add(frame);
 
                 const picShaderMat = createExplicitNonInstancedShader(picTex, 99);
+                nonInstancedShaderMaterials.push(picShaderMat);
                 const picture = new THREE.Mesh(
                     new THREE.PlaneGeometry(0.82, 0.62),
                     picShaderMat
@@ -17637,7 +18311,7 @@ let discardedWallTex = null;
             const [seedMode, subLevelType] = spec.split(':');
             const keepSeed = (seedMode === 'same');
             const forcedSeed = keepSeed ? baseWorldSeed : undefined;
-            const forcedSubLevel = (subLevelType === 'red' || subLevelType === 'blue' || subLevelType === 'dark' || subLevelType === 'dullness' || subLevelType === 'discarded' || subLevelType === 'normal') ? subLevelType : 'normal';
+            const forcedSubLevel = (subLevelType === 'red' || subLevelType === 'blue' || subLevelType === 'dark' || subLevelType === 'dullness' || subLevelType === 'discarded' || subLevelType === 'level02' || subLevelType === 'level0777' || subLevelType === 'whiterooms' || subLevelType === 'normal') ? subLevelType : 'normal';
 
             
             
@@ -17885,6 +18559,9 @@ let discardedWallTex = null;
                 <button class="tester-btn dark" data-tp="sublevel:dark">Level 0.01 (Darkrooms)</button>
                 <button class="tester-btn" data-tp="sublevel:dullness">Level 0.29 (Dullness)</button>
                 <button class="tester-btn purple" data-tp="sublevel:discarded">Level 0.248 (Discarded)</button>
+                <button class="tester-btn" data-tp="sublevel:level02">Level 0.2 (Remodeled Mess)</button>
+                <button class="tester-btn dark" data-tp="sublevel:level0777">Level 0.777 (Scopophobic Lobby)</button>
+                <button class="tester-btn" data-tp="sublevel:whiterooms">Level 0.897 (Whiterooms)</button>
             </div>
         </div>
         <div class="tester-section">
